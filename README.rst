@@ -8,10 +8,10 @@ exchange-correlation functionals (at the moment only Dirac exchange).
 
 The code is designed with the following criteria in mind:
 
-- It depends only on established scientific Python libraries: numpy, scipy and
-  (the lesser known) autograd. The latter is a library for algorithmic
-  differentiation, used to computed analytic exchange(-correlation) potentials
-  and grid transformation.
+- It depends only on established scientific Python libraries: numpy_, scipy_ and
+  (the lesser known) autograd_. The latter is a library for algorithmic
+  differentiation, used to computed the analytic exchange(-correlation) potential
+  and the grid transformation.
 
 - The numerical integration and differentiation algorithms should be accurate
   enough to approx 6 significant digits in the total energy (not fully tested
@@ -25,24 +25,25 @@ The code is designed with the following criteria in mind:
 ==============
 
 1) Make sure you have the dependencies installed: Python 3 and fairly recent
-   versions of numpy (>= 1.4.0), scipy (>=1.0.0) and autograd (>=1.2). In case
-   of doubt, ask some help from your local Python guru. If you have Python 3,
-   you can always install or upgrade the other dependencies in your user account
-   with pip:
+   versions of numpy_ (>= 1.4.0), scipy_ (>=1.0.0) and autograd_ (>=1.2). In
+   case of doubt, ask some help from your local Python guru. If you have Python
+   3, you can always install or upgrade the other dependencies in your user
+   account with pip:
 
    .. code-block:: bash
 
-        python3 -m pip install numpy scipy autogradd --upgrade
+        python3 -m pip install numpy scipy autograd --upgrade
 
-   Packages from your Linux distribution or Conda package manager should also
-   work.
+   Packages from your Linux distribution or the Conda package manager should
+   also work.
 
 2) Download Tiny DFT. This can be done with your browser, after which you unpack
-   the archive: TODO URL. Or you can use git:
+   the archive: https://github.com/theochem/tinydft/archive/master.zip.
+   Or you can use git:
 
    .. code-block:: bash
 
-        git clone TODO URL
+        git clone https://github.com/theochem/tinydft.git
         cd tinydft
 
 Usage
@@ -113,7 +114,7 @@ In order of increasing difficulty:
 
    In ZORA, the following operator should be added to the Hamiltonian:
 
-   .. image:: https://latex.codecogs.com/png.download?%5Cdpi%7B100%7D%20%5Clarge%20t_%7Bab%7D%20%3D%20%5Cint%20%28%5Cnabla%20%5Cchi_a%29%20%28%5Cnabla%20%5Cchi_b%29%20%5Cfrac%7Bv_%7BKS%7D%28%5Cmathbf%7Br%7D%29%7D%7B4/%5Calpha%5E2%20-%202v_%7BKS%7D%28%5Cmathbf%7Br%7D%29%7D%20%5Cmathrm%7Bd%7D%5Cmathbf%7Br%7D
+   .. image:: zora.png
      :alt: t_{ab} = \int (\nabla \chi_a) (\nabla \chi_b) \frac{v_{KS}(\mathbf{r})}{4/\alpha^2 - 2v_{KS}(\mathbf{r})} \mathrm{d}\mathbf{r}
      :align: center
 
@@ -130,3 +131,10 @@ In order of increasing difficulty:
 7) If all previous assignments were too easy, extend the program with Spin-DFT,
    Hartree-Fock exchange and/or (meta) generalized gradient functionals. This
    should keep you entertained for at least a few minutes. :)
+
+
+.. _numpy: https://www.numpy.org/
+
+.. _scipy: https://www.scipy.org/
+
+.. _autograd: https://github.com/HIPS/autograd
