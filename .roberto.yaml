@@ -23,5 +23,5 @@ tools:
     conda_requirements:
       - coverage
     commands:
-      - coverage run -m tinydft -n auto -F
+      - coverage run -m tinydft
       - coverage xml -i -o coverage_main.xml
