@@ -1,0 +1,18 @@
+project:
+  name: tinydft
+  conda_requirements: [numpy, scipy, autograd, matplotlib]
+  packages:
+    - dist_name: tinydft
+      tools:
+        - cardboardlint-static
+        - upload-codecov
+        - pytest
+
+tools:
+  pytest:
+    commands:
+      - pytest -v
+          --cov-report xml:coverage_pytest.xml
+          --cov-report term-missing
+          --cov-branch --color=yes
+          -n auto

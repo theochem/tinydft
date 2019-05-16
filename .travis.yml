@@ -1,0 +1,76 @@
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      language: generic
+      env:
+        - ROBERTO_CONDA_PINNING="python 3.6"
+        - ROBERTO_DEPLOY_BINARY=1
+    - os: linux
+      dist: xenial
+      language: generic
+      env:
+        - ROBERTO_CONDA_PINNING="python 3.7"
+        - ROBERTO_DEPLOY_NOARCH=1
+        - ROBERTO_DEPLOY_BINARY=1
+    - os: osx
+      osx_image: xcode9.4
+      language: generic
+      env:
+        - ROBERTO_CONDA_PINNING="python 3.6"
+        - ROBERTO_DEPLOY_BINARY=1
+    - os: osx
+      osx_image: xcode9.4
+      language: generic
+      env:
+        - ROBERTO_CONDA_PINNING="python 3.7"
+        - ROBERTO_DEPLOY_BINARY=1
+
+env:
+  global:
+    # Install conda in a *sub*directory of a directory cached by travis.
+    - ROBERTO_CONDA_BASE_PATH=${HOME}/cache/miniconda3
+    # Tell Roberto to upload coverage results
+    - ROBERTO_UPLOAD_COVERAGE=1
+    # Build conda packages outside the miniconda tree, to avoid caching.
+    # This makes it possible to still deploy packages after cache cleaning.
+    - CONDA_BLD_PATH=${HOME}/conda-bld
+    # Tell roberto which branch is being merged into, in case of a PR.
+    - ROBERTO_GIT_MERGE_BRANCH=${TRAVIS_BRANCH}
+    # Debugging options
+    # - HUB_VERBOSE=1
+
+    # GITHUB_TOKEN (not set)
+    # yamllint disable-line rule:line-length
+    # ANACONDA_API_TOKEN (not set)
+    # yamllint disable-line rule:line-length
+    # TWINE_PASSWORD (not set)
+    # yamllint disable-line rule:line-length
+    - TWINE_USERNAME: theochem
+
+cache:
+  # More time is needed for caching due to the sheer size of the conda env.
+  timeout: 1000
+  directories:
+    - ${HOME}/cache
+
+install:
+  # Get a basic python 3 with pip to run roberto
+  - python3 --version
+  - wget --no-clobber -O ${HOME}/cache/get-pip.py https://bootstrap.pypa.io/get-pip.py || true
+  - python3 ${HOME}/cache/get-pip.py --user
+  - python3 -m pip install 'roberto<2.0.0' --user
+
+script:
+  # Instead of simply calling `rob`, we do something that always works on osx too.
+  - python3 -m roberto;
+
+before_cache:
+  - rm -rf ${ROBERTO_CONDA_BASE_PATH}/conda-bld
+  - rm -rf ${ROBERTO_CONDA_BASE_PATH}/locks
+  - rm -rf ${ROBERTO_CONDA_BASE_PATH}/pkgs
+  - rm -rf ${ROBERTO_CONDA_BASE_PATH}/var
+  - rm -rf ${ROBERTO_CONDA_BASE_PATH}/envs/*/conda-bld
+  - rm -rf ${ROBERTO_CONDA_BASE_PATH}/envs/*/locks
+  - rm -rf ${ROBERTO_CONDA_BASE_PATH}/envs/*/pkgs
+  - rm -rf ${ROBERTO_CONDA_BASE_PATH}/envs/*/var

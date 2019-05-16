@@ -1,0 +1,132 @@
+Tiny DFT
+########
+
+This is a minimalistic atomic Density Functional Theory (DFT) code, mainly for
+educational purposes. It only supports spherical closed-shell atoms (with
+fractional occupations to obtain a spherical density) and local
+exchange-correlation functionals (at the moment only Dirac exchange).
+
+The code is designed with the following criteria in mind:
+
+- It depends only on established scientific Python libraries: numpy, scipy and
+  (the lesser known) autograd. The latter is a library for algorithmic
+  differentiation, used to computed analytic exchange(-correlation) potentials
+  and grid transformation.
+
+- The numerical integration and differentiation algorithms should be accurate
+  enough to approx 6 significant digits in the total energy (not fully tested
+  yet). For this reason, the spectral method with Chebyshev polynomials is used.
+
+- The total number of lines should be minimal and the source-code should be easy
+  to understand, provided some background in DFT and spectral methods.
+
+
+"Installation"
+==============
+
+1) Make sure you have the dependencies installed: Python 3 and fairly recent
+   versions of numpy (>= 1.4.0), scipy (>=1.0.0) and autograd (>=1.2). In case
+   of doubt, ask some help from your local Python guru. If you have Python 3,
+   you can always install or upgrade the other dependencies in your user account
+   with pip:
+
+   .. code-block:: bash
+
+        python3 -m pip install numpy scipy autogradd --upgrade
+
+   Packages from your Linux distribution or Conda package manager should also
+   work.
+
+2) Download Tiny DFT. This can be done with your browser, after which you unpack
+   the archive: TODO URL. Or you can use git:
+
+   .. code-block:: bash
+
+        git clone TODO URL
+        cd tinydft
+
+Usage
+=====
+
+To run an atomic DFT calculation, just execute the tinydft.py script:
+
+.. code-block::
+
+    python3 tinydft.py
+
+This generates some screen output with energy contributions and a figure
+``rho.png`` with the radial electron density on a semi-log grid. To modify the
+settings for this calculation, you have to directly edit the source code.
+
+When you make serious modifications to Tiny DFT, you can run the unit tests to
+make sure the original features still work:
+
+.. code-block:: bash
+
+    # Install pytest in case you don't have it yet.
+    python3 -m pip install pytest --upgrade
+    pytest
+
+
+Programming assignments
+=======================
+
+In order of increasing difficulty:
+
+1) Change ``tinydft.py`` to also make plots of the radial probability density,
+   the occupied orbitals, the potentials (external, Kohn-Sham) with horizontal
+   lines for the (higher but still negative) energy levels. Does this code
+   reproduce the Rydberg spectral series well? (See
+   https://en.wikipedia.org/wiki/Hydrogen_spectral_series#Rydberg_formula)
+
+2) Write a driver script ``driver.py``, which uses ``tinydft.py`` to compute the
+   ionization potentials and electron affinities of all atoms in the periodic
+   table. (See how far you can get before the numerical algorithms break.)
+   Implement *Madelung energy ordering rule* to set the electronic
+   configuration. See
+   https://en.wikipedia.org/wiki/Aufbau_principle#Madelung_energy_ordering_rule
+
+3) Add a unit test for the Poisson solver. The current unit test checks if the
+   Poisson solver can correctly compute the electrostatic potential of a
+   spherical exponential density distribution (Slater-type). Add a similar test
+   for a Gaussian density distribution. Use the ``erf`` function from
+   ``scipy.special`` to compute the analytic result. See
+   https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.erf.html#scipy.special.erf
+
+4) Add a correlation energy density the function ``excfunction`` and check if it
+   improve the results in assignment (2). The following correlation functional
+   has a good compromise between simplicity and accuracy:
+   https://aip.scitation.org/doi/10.1063/1.4958669 and
+   https://aip.scitation.org/doi/full/10.1063/1.4964758
+
+5) Replace the implementation of ``derivative`` and ``antiderivative`` in the
+   ``ChebyGrid`` class in ``tinygrid.py`` by one that uses the functions ``cdt``
+   and ``icdt`` from ``scipy.fftpack``. See
+   https://docs.scipy.org/doc/scipy/reference/fftpack.html Do you notice any
+   improvement in performance (for a large number of basis functions)?
+
+6) Implement the zeroth order regular approximation to the Dirac equation
+   (ZORA) to the code. ZORA needs a pro-atomic electron density as input,
+   which remains fixed during the SCF cycle. Add an outer loop where the first
+   iteration is without ZORA and subsequent iterations use the electron density
+   from the previous SCF loop as pro-density for ZORA.
+
+   In ZORA, the following operator should be added to the Hamiltonian:
+
+   .. image:: https://latex.codecogs.com/png.download?%5Cdpi%7B100%7D%20%5Clarge%20t_%7Bab%7D%20%3D%20%5Cint%20%28%5Cnabla%20%5Cchi_a%29%20%28%5Cnabla%20%5Cchi_b%29%20%5Cfrac%7Bv_%7BKS%7D%28%5Cmathbf%7Br%7D%29%7D%7B4/%5Calpha%5E2%20-%202v_%7BKS%7D%28%5Cmathbf%7Br%7D%29%7D%20%5Cmathrm%7Bd%7D%5Cmathbf%7Br%7D
+     :alt: t_{ab} = \int (\nabla \chi_a) (\nabla \chi_b) \frac{v_{KS}(\mathbf{r})}{4/\alpha^2 - 2v_{KS}(\mathbf{r})} \mathrm{d}\mathbf{r}
+     :align: center
+
+   where the first factors are the gradients of the basis functions (similar to
+   the kinetic energy operator). The Kohn-Sham potential from the previous
+   outer iteration can be used. The parameter alpha is the dimensionless inverse
+   fine-structure constant, see
+   https://physics.nist.gov/cgi-bin/cuu/Value?alphinv and
+   https://docs.scipy.org/doc/scipy/reference/constants.html (``inverse
+   fine-structure constant``). Before this can be implemented, this expression
+   needs to be worked out in spherical coordinates, separating it in a
+   radial and an angular contribution.
+
+7) If all previous assignments were too easy, extend the program with Spin-DFT,
+   Hartree-Fock exchange and/or (meta) generalized gradient functionals. This
+   should keep you entertained for at least a few minutes. :)
