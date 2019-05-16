@@ -1,8 +1,8 @@
 Tiny DFT
 ########
 
-This is a minimalistic atomic Density Functional Theory (DFT) code, mainly for
-educational purposes. It only supports spherical closed-shell atoms (with
+Tiny DFT is a minimalistic atomic Density Functional Theory (DFT) code, mainly
+for educational purposes. It only supports spherical closed-shell atoms (with
 fractional occupations to obtain a spherical density) and local
 exchange-correlation functionals (at the moment only Dirac exchange).
 
@@ -14,8 +14,9 @@ The code is designed with the following criteria in mind:
   and the grid transformation.
 
 - The numerical integration and differentiation algorithms should be accurate
-  enough to approx 6 significant digits in the total energy (not fully tested
-  yet). For this reason, the spectral method with Chebyshev polynomials is used.
+  enough to approximately 6 significant digits in the total energy (not fully
+  tested yet). For this reason, the spectral method with Chebyshev polynomials
+  is used.
 
 - The total number of lines should be minimal and the source-code should be easy
   to understand, provided some background in DFT and spectral methods.
@@ -60,7 +61,8 @@ This generates some screen output with energy contributions and a figure
 settings for this calculation, you have to directly edit the source code.
 
 When you make serious modifications to Tiny DFT, you can run the unit tests to
-make sure the original features still work:
+make sure the original features still work. For this, you first need to install
+pytest_.
 
 .. code-block:: bash
 
@@ -80,18 +82,19 @@ In order of increasing difficulty:
    reproduce the Rydberg spectral series well? (See
    https://en.wikipedia.org/wiki/Hydrogen_spectral_series#Rydberg_formula)
 
-2) Write a driver script ``driver.py``, which uses ``tinydft.py`` to compute the
-   ionization potentials and electron affinities of all atoms in the periodic
-   table. (See how far you can get before the numerical algorithms break.)
-   Implement *Madelung energy ordering rule* to set the electronic
-   configuration. See
+2) Write a driver script ``driver.py``, which uses ``tinydft.py`` as a python
+   module to compute the ionization potentials and electron affinities of all
+   atoms in the periodic table. (See how far you can get before the numerical
+   algorithms break.) Implement *Madelung energy ordering rule* to set the
+   electronic configuration. See
    https://en.wikipedia.org/wiki/Aufbau_principle#Madelung_energy_ordering_rule
 
-3) Add a unit test for the Poisson solver. The current unit test checks if the
-   Poisson solver can correctly compute the electrostatic potential of a
-   spherical exponential density distribution (Slater-type). Add a similar test
-   for a Gaussian density distribution. Use the ``erf`` function from
-   ``scipy.special`` to compute the analytic result. See
+3) Add a second unit test for the Poisson solver in ``test_tinydft.py``. The
+   current unit test checks if the Poisson solver can correctly compute the
+   electrostatic potential of a spherical exponential density distribution
+   (Slater-type). Add a similar test for a Gaussian density distribution. Use
+   the ``erf`` function from ``scipy.special`` to compute the analytic result.
+   See
    https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.erf.html#scipy.special.erf
 
 4) Add a correlation energy density the function ``excfunction`` and check if it
@@ -106,11 +109,11 @@ In order of increasing difficulty:
    https://docs.scipy.org/doc/scipy/reference/fftpack.html Do you notice any
    improvement in performance (for a large number of basis functions)?
 
-6) Implement the zeroth order regular approximation to the Dirac equation
-   (ZORA) to the code. ZORA needs a pro-atomic electron density as input,
+6) Implement the zeroth-order regular approximation to the Dirac equation
+   (ZORA) to the code. ZORA needs a pro-atomic Kohn-Sham potential as input,
    which remains fixed during the SCF cycle. Add an outer loop where the first
-   iteration is without ZORA and subsequent iterations use the electron density
-   from the previous SCF loop as pro-density for ZORA.
+   iteration is without ZORA and subsequent iterations use the Kohn-Sham
+   potential from the previous SCF loop as pro-density for ZORA.
 
    In ZORA, the following operator should be added to the Hamiltonian:
 
@@ -124,17 +127,19 @@ In order of increasing difficulty:
    fine-structure constant, see
    https://physics.nist.gov/cgi-bin/cuu/Value?alphinv and
    https://docs.scipy.org/doc/scipy/reference/constants.html (``inverse
-   fine-structure constant``). Before this can be implemented, this expression
+   fine-structure constant``). Before ZORA can be implemented, the formula
    needs to be worked out in spherical coordinates, separating it in a
    radial and an angular contribution.
 
 7) If all previous assignments were too easy, extend the program with Spin-DFT,
    Hartree-Fock exchange and/or (meta) generalized gradient functionals. This
-   should keep you entertained for at least a few minutes. :)
+   should keep you entertained for more than a few minutes. :)
 
 
 .. _numpy: https://www.numpy.org/
 
 .. _scipy: https://www.scipy.org/
 
-.. _autograd: https://github.com/HIPS/autograd
+.. _autograd: https://github.com/HIPS/autograd/
+
+.. _pytest: https://pytest.org/
