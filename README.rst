@@ -104,8 +104,8 @@ In order of increasing difficulty:
    https://aip.scitation.org/doi/full/10.1063/1.4964758
 
 5) Replace the implementation of ``derivative`` and ``antiderivative`` in the
-   ``ChebyGrid`` class in ``tinygrid.py`` by one that uses the functions ``cdt``
-   and ``icdt`` from ``scipy.fftpack``. See
+   ``ChebyGrid`` class in ``tinygrid.py`` by one that uses the functions ``dct``
+   and ``idct`` from ``scipy.fftpack``. See
    https://docs.scipy.org/doc/scipy/reference/fftpack.html Do you notice any
    improvement in performance (for a large number of basis functions)?
 
