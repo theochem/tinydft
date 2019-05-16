@@ -23,5 +23,8 @@ tools:
     conda_requirements:
       - coverage
     commands:
-      - coverage run -m tinydft
+      - >
+        export MATPLOTLIBRC=$PWD;
+        echo "backend: agg" > $MATPLOTLIBRC/matplotlibrc;
+        coverage run -m tinydft
       - coverage xml -i -o coverage_main.xml
