@@ -185,13 +185,13 @@ def main(z, econf, nscf=25, mixing=0.5):
 
     # Plot the electron density.
     plt.clf()
-    plt.title("Energy: {:.5d}".format(energy))
+    plt.title("Z={:d} Energy={:.5f}".format(z, energy))
     plt.semilogy(grid.points, rho)
     plt.xlabel("Distance from nucleus")
     plt.ylabel("Density")
     plt.ylim(1e-4, rho.max() * 2)
     plt.xlim(0, 5)
-    plt.savefig("rho_z{:03d}_{}.png".format(z, '_'.join(econf)))
+    plt.savefig("rho_z{:03d}_{}.png".format(z, '_'.join(econf.split())))
 
     return energy
 

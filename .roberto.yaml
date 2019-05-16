@@ -7,12 +7,21 @@ project:
         - cardboardlint-static
         - upload-codecov
         - pytest
+        - test-main
 
 tools:
   pytest:
     commands:
-      - pytest -v
+      - pytest -v --cov=tinydft --cov=tinyxml
           --cov-report xml:coverage_pytest.xml
           --cov-report term-missing
           --cov-branch --color=yes
           -n auto
+
+  test-main:
+    task: test-inplace
+    conda_requirements:
+      - coverage
+    commands:
+      - coverage run -m tinydft -n auto -F
+      - coverage xml -i -o coverage_main.xml
