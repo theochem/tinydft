@@ -27,13 +27,13 @@ from scipy.linalg import eigh
 from tinydft import *
 
 
-def test_str2l():
-    assert str2l('s') == 0
-    assert str2l('S') == 0
-    assert str2l('p') == 1
-    assert str2l('P') == 1
-    assert str2l('d') == 2
-    assert str2l('D') == 2
+def test_char2l():
+    assert char2l('s') == 0
+    assert char2l('S') == 0
+    assert char2l('p') == 1
+    assert char2l('P') == 1
+    assert char2l('d') == 2
+    assert char2l('D') == 2
 
 
 def test_hydrogen():

@@ -41,7 +41,7 @@ from tinygrid import TransformedGrid
 __all__ = [
     'main', 'setup_grid', 'setup_obasis', 'compute_overlap_operator',
     'compute_radial_kinetic_operator', 'compute_angular_kinetic_operator',
-    'compute_potential_operator', 'solve_poisson', 'xcfunctional', 'str2l',
+    'compute_potential_operator', 'solve_poisson', 'xcfunctional', 'char2l',
     'interpret_econf']
 
 
@@ -294,7 +294,7 @@ def xcfunctional(rho, excfunction):
     return exc, vxc
 
 
-def str2l(char):
+def char2l(char):
     """Return the angular momentum quantum number corresponding to a character."""
     return 'spdfghiklmnoqrtuvwxyzabce'.index(char.lower())
 
@@ -306,7 +306,7 @@ def interpret_econf(econf):
         occup = float(key[2:])
         if occup > 0:
             n = int(key[0])
-            l = str2l(key[1])
+            l = char2l(key[1])
             while len(occups) < l + 1:
                 occups.append([])
             i = n - l - 1
