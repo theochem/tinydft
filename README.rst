@@ -8,10 +8,10 @@ exchange-correlation functionals (at the moment only Dirac exchange).
 
 The code is designed with the following criteria in mind:
 
-- It depends only on established scientific Python libraries: numpy_, scipy_ and
-  (the lesser known) autograd_. The latter is a library for algorithmic
-  differentiation, used to computed the analytic exchange(-correlation) potential
-  and the grid transformation.
+- It depends only on established scientific Python libraries: numpy_, scipy_,
+  matplotlib_ and (the lesser known) autograd_. The latter is a library for
+  algorithmic differentiation, used to computed the analytic
+  exchange(-correlation) potential and the grid transformation.
 
 - The numerical integration and differentiation algorithms should be accurate
   enough to approximately 6 significant digits in the total energy (not fully
@@ -26,10 +26,10 @@ The code is designed with the following criteria in mind:
 ==============
 
 1) Make sure you have the dependencies installed: Python 3 and fairly recent
-   versions of numpy_ (>= 1.4.0), scipy_ (>=1.0.0) and autograd_ (>=1.2). In
-   case of doubt, ask some help from your local Python guru. If you have Python
-   3, you can always install or upgrade the other dependencies in your user
-   account with pip:
+   versions of numpy_ (>= 1.4.0), scipy_ (>=1.0.0), matplotlib_ (>= 2.2.4) and
+   autograd_ (>=1.2). In case of doubt, ask some help from your local Python
+   guru. If you have Python 3, you can always install or upgrade the other
+   dependencies in your user account with pip:
 
    .. code-block:: bash
 
@@ -103,13 +103,21 @@ In order of increasing difficulty:
    https://aip.scitation.org/doi/10.1063/1.4958669 and
    https://aip.scitation.org/doi/full/10.1063/1.4964758
 
-5) Replace the implementation of ``derivative`` and ``antiderivative`` in the
+5) Replace the current ``econf`` argument of the ``main`` function by a number
+   of electrons. Use the Aufbau principle to assign occupation numbers at each
+   SCF iteration instead of the currently fixed values for each orbital.
+   See https://en.wikipedia.org/wiki/Aufbau_principle
+   "The aufbau principle states that in the ground state of an atom or ion,
+   electrons fill atomic orbitals of the lowest available energy levels before
+   occupying higher levels."
+
+6) Replace the implementation of ``derivative`` and ``antiderivative`` in the
    ``ChebyGrid`` class in ``tinygrid.py`` by one that uses the functions ``dct``
    and ``idct`` from ``scipy.fftpack``. See
    https://docs.scipy.org/doc/scipy/reference/fftpack.html Do you notice any
    improvement in performance (for a large number of basis functions)?
 
-6) Implement the zeroth-order regular approximation to the Dirac equation
+7) Implement the zeroth-order regular approximation to the Dirac equation
    (ZORA) to the code. ZORA needs a pro-atomic Kohn-Sham potential as input,
    which remains fixed during the SCF cycle. Add an outer loop where the first
    iteration is without ZORA and subsequent iterations use the Kohn-Sham
@@ -131,7 +139,7 @@ In order of increasing difficulty:
    needs to be worked out in spherical coordinates, separating it in a
    radial and an angular contribution.
 
-7) If all previous assignments were too easy, extend the program with Spin-DFT,
+8) If all previous assignments were too easy, extend the program with Spin-DFT,
    Hartree-Fock exchange and/or (meta) generalized gradient functionals. This
    should keep you entertained for more than a few minutes. :)
 
@@ -139,6 +147,8 @@ In order of increasing difficulty:
 .. _numpy: https://www.numpy.org/
 
 .. _scipy: https://www.scipy.org/
+
+.. _matplotlib: https://matplotlib.org/
 
 .. _autograd: https://github.com/HIPS/autograd/
 
