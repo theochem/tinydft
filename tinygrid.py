@@ -18,6 +18,8 @@
 # --
 """Tiny numerical integration library for Tiny DFT."""
 
+from __future__ import print_function, division  # Py 2.7 compatibility
+
 import numpy as np
 from numpy.polynomial.chebyshev import chebvander, chebder, chebint, chebval
 
