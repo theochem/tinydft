@@ -38,7 +38,7 @@ def test_char2l():
 
 
 def test_hydrogen():
-    grid = setup_grid(401)
+    grid = setup_grid(201)
     obasis = setup_obasis(grid, 20)
     overlap = compute_overlap_operator(grid, obasis)
     kin = compute_radial_kinetic_operator(grid, obasis)
@@ -49,15 +49,15 @@ def test_hydrogen():
 
     ekin = np.einsum('i,ij,j', evecs[:, 0], kin, evecs[:, 0])
     enai = np.einsum('i,ij,j', evecs[:, 0], nai, evecs[:, 0])
-    assert_allclose(ekin, 0.5, atol=1e-7)
-    assert_allclose(enai, -1.0, atol=1e-7)
-    assert_allclose(evals[0], -0.5, atol=1e-7)
-    assert_allclose(evals[1], -0.125, atol=1e-7)
+    assert_allclose(ekin, 0.5, atol=1e-6, rtol=0)
+    assert_allclose(enai, -1.0, atol=1e-6, rtol=0)
+    assert_allclose(evals[0], -0.5, atol=1e-8, rtol=0)
+    assert_allclose(evals[1], -0.125, atol=1e-7, rtol=0)
 
 
 def test_tf_grid_poisson():
     # Numerically solve the electrostatic potential of an S-type Slater Density
-    grid = setup_grid(401)
+    grid = setup_grid(201)
     alpha = 0.7
     aux = np.exp(-alpha * grid.points)
     rho = aux * alpha**3 / (8 * np.pi)
@@ -65,7 +65,7 @@ def test_tf_grid_poisson():
     vnum = solve_poisson(grid, rho)
     vann = (1 - aux) / grid.points - alpha * aux / 2
     assert_allclose(vnum[-1], 1.0 / grid.points[-1], atol=1e-11, rtol=0)
-    assert_allclose(vnum, vann, atol=1e-7, rtol=0)
+    assert_allclose(vnum, vann, atol=1e-8, rtol=0)
 
 
 def test_interpret_econf():

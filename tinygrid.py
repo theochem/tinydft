@@ -21,29 +21,27 @@
 from __future__ import print_function, division  # Py 2.7 compatibility
 
 import numpy as np
-from numpy.polynomial.chebyshev import chebvander, chebder, chebint, chebval
+from numpy.polynomial.legendre import legvander, legder, legint, leggauss
 
 
-__all__ = ['ChebyGrid', 'TransformedGrid']
+__all__ = ['LegendreGrid', 'TransformedGrid']
 
 
-class ChebyGrid:
-    """Standard Gauss-Chebyshev grid.
+class LegendreGrid:
+    """Standard Gauss-Legendre grid.
 
     The derivative and antiderivative are implemented with the spectral method.
     """
 
     def __init__(self, npoint):
-        """Initialize a Chebyshev-Gauss grid with given number of points."""
-        self.points = -np.cos(np.pi * (np.arange(npoint) + 0.5) / npoint)
-        self.weights = np.pi / npoint * np.sqrt(1 - self.points**2)
+        """Initialize a Gauss-Legendre grid with given number of points."""
+        self.points, self.weights = leggauss(npoint)
 
-        # Basis functions are used to obtain the Chebyshev coefficients
+        # Basis functions are used to obtain the Legendre coefficients
         # given a function on a grid. (Mind the normalization.)
-        # This could be made more efficient with an FFT approach.
-        self.basis = chebvander(self.points, npoint - 1).T
-        self.basis[0] /= npoint
-        self.basis[1:] /= npoint / 2
+        self.basis = legvander(self.points, npoint - 1)
+        U, S, Vt = np.linalg.svd(self.basis)
+        self.basis_inv = np.einsum('ji,j,kj->ik', Vt, 1/S, U)
 
     def integrate(self, fn):
         """Compute the definite integral of fn."""
@@ -51,19 +49,19 @@ class ChebyGrid:
 
     def antiderivative(self, fn, order=1):
         """Return the antiderivative to given order."""
-        coeffs = np.dot(self.basis, fn)
-        coeffs_int = chebint(coeffs, order)
-        return chebval(self.points, coeffs_int)
+        coeffs = np.dot(self.basis_inv, fn)
+        coeffs_int = legint(coeffs, order)
+        return np.dot(self.basis, coeffs_int[:-1])
 
     def derivative(self, fn, order=1):
         """Return the derivative to given order."""
-        coeffs = np.dot(self.basis, fn)
-        coeffs_der = chebder(coeffs, order)
-        return chebval(self.points, coeffs_der)
+        coeffs = np.dot(self.basis_inv, fn)
+        coeffs_der = legder(coeffs, order)
+        return np.dot(self.basis[:, :-1], coeffs_der)
 
 
 class TransformedGrid:
-    """A custom transformation of the Chebyshev grid."""
+    """A custom transformation of the Legendre grid."""
 
     def __init__(self, transform, npoint):
         """Initialize the transformed grid.
@@ -71,7 +69,7 @@ class TransformedGrid:
         Parameters
         ----------
         transform
-            A function taking two arguments: (i) array of Chebyshev points and
+            A function taking two arguments: (i) array of Legendre points and
             (ii) the numpy wrapper to use, which enables algorithmic
             differentiation. The result is the array with transformed grid
             points.
@@ -81,10 +79,10 @@ class TransformedGrid:
         """
         from autograd import elementwise_grad
         import autograd.numpy as np
-        self.cheby_grid = ChebyGrid(npoint)
-        self.points = transform(self.cheby_grid.points, np)
-        self.derivs = abs(elementwise_grad(transform)(self.cheby_grid.points, np))
-        self.weights = self.cheby_grid.weights * self.derivs
+        self.legendre_grid = LegendreGrid(npoint)
+        self.points = transform(self.legendre_grid.points, np)
+        self.derivs = abs(elementwise_grad(transform)(self.legendre_grid.points, np))
+        self.weights = self.legendre_grid.weights * self.derivs
 
     def integrate(self, fn):
         """Compute the definite integral of fn."""
@@ -93,11 +91,11 @@ class TransformedGrid:
     def antiderivative(self, fn, order=1):
         """Return the antiderivative to given order."""
         for i in range(order):
-            fn = self.cheby_grid.antiderivative(fn * self.derivs)
+            fn = self.legendre_grid.antiderivative(fn * self.derivs)
         return fn
 
     def derivative(self, fn, order=1):
         """Return the derivative to given order."""
         for i in range(order):
-            fn = self.cheby_grid.derivative(fn) / self.derivs
+            fn = self.legendre_grid.derivative(fn) / self.derivs
         return fn

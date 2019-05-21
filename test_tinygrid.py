@@ -22,59 +22,63 @@ from __future__ import print_function, division  # Py 2.7 compatibility
 
 import numpy as np
 from numpy.testing import assert_allclose
-from numpy.polynomial.chebyshev import chebval
+from numpy.polynomial.legendre import legval
 from scipy.special import eval_genlaguerre
 
 from tinygrid import *
 
 
-def test_chebby_grid():
+def test_low_grid():
     for npoint in range(10, 20):
-        grid = ChebyGrid(npoint)
+        grid = LegendreGrid(npoint)
+        assert grid.basis.shape == (npoint, npoint)
+        assert grid.basis_inv.shape == (npoint, npoint)
         fn1 = np.random.uniform(0, 1, npoint)
-        coeffs = np.dot(grid.basis, fn1)
-        fn2 = chebval(grid.points, coeffs)
+        coeffs = np.dot(grid.basis_inv, fn1)
+        fn2 = np.dot(grid.basis, coeffs)
         assert_allclose(fn1, fn2, atol=1e-14)
+        fn3 = legval(grid.points, coeffs)
+        assert_allclose(fn1, fn3, atol=1e-14)
 
 
-def test_chebby_grid_sin():
-    npoint = 501
-    grid = ChebyGrid(npoint)
+def test_low_grid_sin():
+    npoint = 100
+    grid = LegendreGrid(npoint)
     assert_allclose(grid.points[npoint // 2], 0.0, atol=1e-10)
     fn = np.cos(grid.points)
-    fnd = grid.derivative(fn)
     fni = grid.antiderivative(fn)
     fni -= fni[npoint // 2]
-    assert_allclose(grid.integrate(fn), np.sin(1) - np.sin(-1), atol=1e-5)
-    assert_allclose(fnd, -np.sin(grid.points), atol=1e-6)
-    assert_allclose(fni, np.sin(grid.points), atol=1e-6)
+    fnd = grid.derivative(fn)
+    assert_allclose(grid.integrate(fn), np.sin(1) - np.sin(-1), atol=1e-14, rtol=0)
+    assert_allclose(fni, np.sin(grid.points), atol=1e-14, rtol=0)
+    assert_allclose(fnd, -np.sin(grid.points), atol=1e-11, rtol=0)
 
 
-def test_chebby_grid_exp():
-    npoint = 501
-    grid = ChebyGrid(npoint)
+def test_low_grid_exp():
+    npoint = 101
+    grid = LegendreGrid(npoint)
     assert_allclose(grid.points[npoint // 2], 0.0, atol=1e-10)
     fn = np.exp(grid.points)
-    fnd = grid.derivative(fn)
     fni = grid.antiderivative(fn)
     fni += 1 - fni[npoint // 2]
-    assert_allclose(grid.integrate(fn), np.exp(1) - np.exp(-1), atol=1e-5)
-    assert_allclose(fnd, fn, atol=1e-6)
-    assert_allclose(fni, fn, atol=1e-6)
+    fnd = grid.derivative(fn)
+    assert_allclose(grid.integrate(fn), np.exp(1) - np.exp(-1), atol=1e-14, rtol=0)
+    assert_allclose(fni, fn, atol=1e-14, rtol=0)
+    assert_allclose(fnd, fn, atol=1e-10, rtol=0)
 
 
 def test_tf_grid_exp():
     def tf(t, np):
         u = (1 + t) / 2
-        return 10 * np.arctanh(u)
-    grid = TransformedGrid(tf, 801)
+        return 10*np.arctanh(u)**2
+    grid = TransformedGrid(tf, 201)
     fn = np.exp(-grid.points)
-    fnd = grid.derivative(fn)
     fni = grid.antiderivative(fn)
     fni += -1 - fni[0]
-    assert_allclose(grid.integrate(fn), 1.0, atol=1e-5)
-    assert_allclose(fnd, -fn, atol=1e-6)
-    assert_allclose(fni, -fn, atol=1e-5)
+    fnd = grid.derivative(fn)
+    assert_allclose(grid.integrate(fn), 1.0, atol=1e-13, rtol=0)
+    assert_allclose(fni, -fn, atol=1e-7, rtol=0)
+    assert_allclose(fnd, -fn, atol=1e-7, rtol=0)
 
 
 def test_tf_grid_hydrogen_norm():
@@ -82,7 +86,7 @@ def test_tf_grid_hydrogen_norm():
     def tf(t, np):
         u = (1 + t) / 2
         return 1e-4 * np.exp(15 * u)
-    grid = TransformedGrid(tf, 401)
+    grid = TransformedGrid(tf, 201)
 
     fac = np.math.factorial
     norms = []
@@ -97,14 +101,14 @@ def test_tf_grid_hydrogen_norm():
             poly = eval_genlaguerre(n - l - 1, 2 * l + 1, rho)
             psi = normalization * np.exp(-rho / 2) * rho**l * poly
             norms.append(grid.integrate(psi * psi * vol))
-    assert_allclose(norms, 1.0)
+    assert_allclose(norms, 1.0, atol=1e-11, rtol=0)
 
 
 def test_tf_grid_hydrogen_few():
     def tf(t, np):
         u = (1 + t) / 2
         return 1e-4 * np.exp(15 * u)
-    grid = TransformedGrid(tf, 401)
+    grid = TransformedGrid(tf, 201)
 
     # Solutions of the radial equation (U=R/r)
     psi_1s = np.sqrt(4 * np.pi) * grid.points * np.exp(-grid.points) / np.sqrt(np.pi)
@@ -121,4 +125,4 @@ def test_tf_grid_hydrogen_few():
         assert_allclose(epot, 2 * eps)
 
     dot = grid.integrate(psi_1s * psi_2s)
-    assert_allclose(dot, 0.0, atol=1e-10)
+    assert_allclose(dot, 0.0, atol=1e-12, rtol=0)

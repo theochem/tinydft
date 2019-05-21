@@ -95,8 +95,6 @@ def main(z, econf, nscf=25, mixing=0.5):
         clda = (3 / 4) * (3.0 / np.pi)**(1 / 3)
         return -clda * rho**(4 / 3)
 
-    print("Pre-computing some integrals ...")
-    print()
     # Radial kinetic energy.
     op_kin_rad = compute_radial_kinetic_operator(grid, obasis)
     # Interaction with the nuclear potential.
@@ -197,14 +195,14 @@ def main(z, econf, nscf=25, mixing=0.5):
     return energy
 
 
-def setup_grid(npoint=512):
+def setup_grid(npoint=256):
     """Create a suitable grid for integration and differentiation."""
     def tf(t, np):
         """Transform from [-1, 1] to [0, big_radius]."""
         u = (1 + t) / 2
         # return 50 * u**2
-        # return np.arctanh(u)**2
-        return 1e-5 * np.exp(20 * u)
+        # return 10 * np.arctanh(u)**2
+        return 1e-5 * np.exp(17 * u)
     return TransformedGrid(tf, npoint)
 
 

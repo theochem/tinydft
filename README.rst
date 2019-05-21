@@ -15,7 +15,7 @@ The code is designed with the following criteria in mind:
 
 - The numerical integration and differentiation algorithms should be accurate
   enough to approximately 6 significant digits in the total energy (not fully
-  tested yet). For this reason, the spectral method with Chebyshev polynomials
+  tested yet). For this reason, the spectral method with Legendre polynomials
   is used.
 
 - The total number of lines should be minimal and the source-code should be easy
@@ -110,13 +110,7 @@ In order of increasing difficulty:
    Klechkowsky (or Madelung) rules, but just use the orbital energies to
    at each SCF iteration to find the lowest-energy orbitals.
 
-6) Replace the implementation of ``derivative`` and ``antiderivative`` in the
-   ``ChebyGrid`` class in ``tinygrid.py`` by one that uses the functions ``dct``
-   and ``idct`` from ``scipy.fftpack``. See
-   https://docs.scipy.org/doc/scipy/reference/fftpack.html Do you notice any
-   improvement in performance (for a large number of basis functions)?
-
-7) Implement the zeroth-order regular approximation to the Dirac equation
+6) Implement the zeroth-order regular approximation to the Dirac equation
    (ZORA) to the code. ZORA needs a pro-atomic Kohn-Sham potential as input,
    which remains fixed during the SCF cycle. Add an outer loop where the first
    iteration is without ZORA and subsequent iterations use the Kohn-Sham
@@ -138,16 +132,16 @@ In order of increasing difficulty:
    needs to be worked out in spherical coordinates, separating it in a
    radial and an angular contribution.
 
-8) Extend the program to perform unrestricted Spin-polarized DFT calculations.
+7) Extend the program to perform unrestricted Spin-polarized DFT calculations.
    (Assignment 5 should done prior to this one.) In addition to the Aufbau rule,
    you now also have to implement the Hund rule. You also need to keep track of
    spin-up and spin-down orbitals. The original code uses the angular momentum
    quantum number as keys in the ``eps_orbs_u`` dictionary. Instead, you can
    now use ``(l, spin)`` keys.
 
-9) Extend the program to support Hartree-Fock exchange.
+8) Extend the program to support Hartree-Fock exchange.
 
-10) Extend the program to support (meta) generalized gradient functionals.
+9) Extend the program to support (meta) generalized gradient functionals.
 
 
 .. _numpy: https://www.numpy.org/
