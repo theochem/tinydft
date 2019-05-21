@@ -41,7 +41,7 @@ class LegendreGrid:
         # given a function on a grid. (Mind the normalization.)
         self.basis = legvander(self.points, npoint - 1)
         U, S, Vt = np.linalg.svd(self.basis)
-        self.basis_inv = np.einsum('ji,j,kj->ik', Vt, 1/S, U)
+        self.basis_inv = np.einsum('ji,j,kj->ik', Vt, 1 / S, U)
 
     def integrate(self, fn):
         """Compute the definite integral of fn."""

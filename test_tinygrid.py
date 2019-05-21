@@ -70,7 +70,7 @@ def test_low_grid_exp():
 def test_tf_grid_exp():
     def tf(t, np):
         u = (1 + t) / 2
-        return 10*np.arctanh(u)**2
+        return 10 * np.arctanh(u)**2
     grid = TransformedGrid(tf, 201)
     fn = np.exp(-grid.points)
     fni = grid.antiderivative(fn)
