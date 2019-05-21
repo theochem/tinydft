@@ -106,10 +106,9 @@ In order of increasing difficulty:
 5) Replace the current ``econf`` argument of the ``main`` function by a number
    of electrons. Use the Aufbau principle to assign occupation numbers at each
    SCF iteration instead of the currently fixed values for each orbital.
-   See https://en.wikipedia.org/wiki/Aufbau_principle
-   "The aufbau principle states that in the ground state of an atom or ion,
-   electrons fill atomic orbitals of the lowest available energy levels before
-   occupying higher levels."
+   See https://en.wikipedia.org/wiki/Aufbau_principle Try not to use the
+   Klechkowsky (or Madelung) rules, but just use the orbital energies to
+   at each SCF iteration to find the lowest-energy orbitals.
 
 6) Replace the implementation of ``derivative`` and ``antiderivative`` in the
    ``ChebyGrid`` class in ``tinygrid.py`` by one that uses the functions ``dct``
@@ -139,9 +138,16 @@ In order of increasing difficulty:
    needs to be worked out in spherical coordinates, separating it in a
    radial and an angular contribution.
 
-8) If all previous assignments were too easy, extend the program with Spin-DFT,
-   Hartree-Fock exchange and/or (meta) generalized gradient functionals. This
-   should keep you entertained for more than a few minutes. :)
+8) Extend the program to perform unrestricted Spin-polarized DFT calculations.
+   (Assignment 5 should done prior to this one.) In addition to the Aufbau rule,
+   you now also have to implement the Hund rule. You also need to keep track of
+   spin-up and spin-down orbitals. The original code uses the angular momentum
+   quantum number as keys in the ``eps_orbs_u`` dictionary. Instead, you can
+   now use ``(l, spin)`` keys.
+
+9) Extend the program to support Hartree-Fock exchange.
+
+10) Extend the program to support (meta) generalized gradient functionals.
 
 
 .. _numpy: https://www.numpy.org/
