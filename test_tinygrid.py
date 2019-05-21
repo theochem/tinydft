@@ -42,7 +42,7 @@ def test_low_grid():
 
 
 def test_low_grid_sin():
-    npoint = 100
+    npoint = 101
     grid = LegendreGrid(npoint)
     assert_allclose(grid.points[npoint // 2], 0.0, atol=1e-10)
     fn = np.cos(grid.points)
