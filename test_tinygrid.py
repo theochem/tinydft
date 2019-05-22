@@ -51,7 +51,7 @@ def test_low_grid_sin():
     fnd = grid.derivative(fn)
     assert_allclose(grid.integrate(fn), np.sin(1) - np.sin(-1), atol=1e-14, rtol=0)
     assert_allclose(fni, np.sin(grid.points), atol=1e-14, rtol=0)
-    assert_allclose(fnd, -np.sin(grid.points), atol=1e-11, rtol=0)
+    assert_allclose(fnd, -np.sin(grid.points), atol=1e-10, rtol=0)
 
 
 def test_low_grid_exp():
