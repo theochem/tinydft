@@ -207,9 +207,14 @@ def setup_grid(npoint=256):
 
 
 def setup_obasis(grid, nbasis=40):
-    """Define a radial orbital basis set on a grid, for the U=R/r functions."""
-    # The basis functions are simply even-tempered Gaussians.
-    alphas = 10**np.linspace(-2, 4, nbasis)
+    """Define a radial orbital basis set on a grid, for the U=R/r functions.
+
+    Returns
+    -------
+    obasis
+        Array with orbital basis functions, each row representing one basis
+        function.
+    """
     obasis = []
     for alpha in alphas:
         # Note the multiplication with the radius.
