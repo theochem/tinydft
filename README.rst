@@ -14,9 +14,9 @@ The code is designed with the following criteria in mind:
   exchange(-correlation) potential and the grid transformation.
 
 - The numerical integration and differentiation algorithms should be accurate
-  enough to approximately 6 significant digits in the total energy (not fully
-  tested yet). For this reason, the spectral method with Legendre polynomials
-  is used.
+  enough to at least 3 significant digits in the total energy, but in many cases
+  the numerical accuracy is better. (The pseudo-spectral method with Legendre
+  polynomials is used.)
 
 - The total number of lines should be minimal and the source-code should be easy
   to understand, provided some background in DFT and spectral methods.
@@ -97,24 +97,36 @@ In order of increasing difficulty:
    See
    https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.erf.html#scipy.special.erf
 
-4) Add a correlation energy density the function ``excfunction`` and check if it
+4) Change the external potential to take into account the finite extent of the
+   nucleus. You can use a Gaussian density distribution. Write a
+   python script that combines isotope abundancies from NUBASE2016
+   (http://amdc.in2p3.fr/nubase/nubase2016.txt) and nucleotide radii from ADNDT
+   (https://www-nds.iaea.org/radii/) to build a table of abundance-averaged
+   nuclear radii.
+
+5) Add a correlation energy density the function ``excfunction`` and check if it
    improve the results in assignment (2). The following correlation functional
    has a good compromise between simplicity and accuracy:
    https://aip.scitation.org/doi/10.1063/1.4958669 and
    https://aip.scitation.org/doi/full/10.1063/1.4964758
 
-5) Replace the current ``econf`` argument of the ``main`` function by a number
+6) Replace the current ``econf`` argument of the ``main`` function by a number
    of electrons. Use the Aufbau principle to assign occupation numbers at each
    SCF iteration instead of the currently fixed values for each orbital.
    See https://en.wikipedia.org/wiki/Aufbau_principle Try not to use the
    Klechkowsky (or Madelung) rules, but just use the orbital energies to
    at each SCF iteration to find the lowest-energy orbitals.
 
-6) Implement the zeroth-order regular approximation to the Dirac equation
+7) Implement an SCF convergence test, which checks if the new Fock operator, in
+   the basis of occupied orbitals from a previous iteration, is diagonal with
+   orbital energies from the previous iteration on the diagonal
+
+8) Implement the zeroth-order regular approximation to the Dirac equation
    (ZORA) to the code. ZORA needs a pro-atomic Kohn-Sham potential as input,
    which remains fixed during the SCF cycle. Add an outer loop where the first
    iteration is without ZORA and subsequent iterations use the Kohn-Sham
-   potential from the previous SCF loop as pro-density for ZORA.
+   potential from the previous SCF loop as pro-density for ZORA. (This requires
+   the changes from assignment 4 to be implemented.)
 
    In ZORA, the following operator should be added to the Hamiltonian:
 
@@ -132,16 +144,16 @@ In order of increasing difficulty:
    needs to be worked out in spherical coordinates, separating it in a
    radial and an angular contribution.
 
-7) Extend the program to perform unrestricted Spin-polarized DFT calculations.
+9) Extend the program to perform unrestricted Spin-polarized DFT calculations.
    (Assignment 5 should done prior to this one.) In addition to the Aufbau rule,
    you now also have to implement the Hund rule. You also need to keep track of
    spin-up and spin-down orbitals. The original code uses the angular momentum
    quantum number as keys in the ``eps_orbs_u`` dictionary. Instead, you can
    now use ``(l, spin)`` keys.
 
-8) Extend the program to support Hartree-Fock exchange.
+10) Extend the program to support Hartree-Fock exchange.
 
-9) Extend the program to support (meta) generalized gradient functionals.
+11) Extend the program to support (meta) generalized gradient functionals.
 
 
 .. _numpy: https://www.numpy.org/

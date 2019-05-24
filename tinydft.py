@@ -41,9 +41,8 @@ from tinygrid import TransformedGrid
 
 __all__ = [
     'main', 'setup_grid', 'setup_obasis', 'compute_overlap_operator',
-    'compute_radial_kinetic_operator', 'compute_angular_kinetic_operator',
-    'compute_potential_operator', 'solve_poisson', 'xcfunctional', 'char2l',
-    'interpret_econf']
+    'compute_radial_kinetic_operator', 'compute_potential_operator',
+    'solve_poisson', 'xcfunctional', 'char2l', 'interpret_econf']
 
 
 def main(z, econf, nscf=25, mixing=0.5):
@@ -87,8 +86,9 @@ def main(z, econf, nscf=25, mixing=0.5):
     evals_olp = np.linalg.eigvalsh(overlap)
     print("Number of radial grid points      {:8d}".format(len(grid.points)))
     print("Number of basis functions         {:8d}".format(obasis.shape[0]))
-    print("Condition number of the overlap   {:8.1e}".format(evals_olp[0] / evals_olp[-1]))
+    print("Condition number of the overlap   {:8.1e}".format(evals_olp[-1] / evals_olp[0]))
     print()
+    print("Precomputing some operators ...")
 
     def excfunction(rho, np):
         """Compute the exchange(-correlation) energy density."""
@@ -98,14 +98,15 @@ def main(z, econf, nscf=25, mixing=0.5):
     # Radial kinetic energy.
     op_kin_rad = compute_radial_kinetic_operator(grid, obasis)
     # Interaction with the nuclear potential.
-    vext = -z / grid.points
-    op_ext = compute_potential_operator(grid, obasis, vext)
+    v_ext = -z / grid.points
+    op_ext = compute_potential_operator(grid, obasis, v_ext)
     # The core Hamiltonian for l = 0 (s).
     op_core_s = op_kin_rad + op_ext
     # angular kinetic energy operators.
     ops_kin_ang = {}
     for l in range(1, maxl + 1):
-        op_kin_ang = compute_angular_kinetic_operator(grid, obasis, l)
+        v_angkin = l * (l + 1) / (2 * grid.points**2)
+        op_kin_ang = compute_potential_operator(grid, obasis, v_angkin)
         ops_kin_ang[l] = op_kin_ang
 
     # Dictionary for Fock operators from previous iteration, used for mixing.
@@ -139,7 +140,7 @@ def main(z, econf, nscf=25, mixing=0.5):
                     orb_grid_r = orb_grid_u / grid.points / np.sqrt(4 * np.pi)
                     rho += occup * (orb_grid_r)**2
             # Check the total number of electrons.
-            assert_allclose(grid.integrate(rho * vol), nelec)
+            assert_allclose(grid.integrate(rho * vol), nelec, atol=1e-10, rtol=0)
             # Solve the Poisson problem for the new density.
             vhartree = solve_poisson(grid, rho)
             energy_hartree = 0.5 * grid.integrate(vhartree * rho * vol)
@@ -147,7 +148,7 @@ def main(z, econf, nscf=25, mixing=0.5):
             exc, vxc = xcfunctional(rho, excfunction)
             energy_xc = grid.integrate(exc * vol)
             # Compute the interaction with the external field.
-            energy_ext = grid.integrate(vext * rho * vol)
+            energy_ext = grid.integrate(v_ext * rho * vol)
             # Compute the total energy.
             energy = energy_kin_rad + energy_kin_ang + energy_hartree + energy_xc + energy_ext
             print("{:3d} {:12.6f} {:12.6f} {:12.6f} {:12.6f} {:12.6f} {:12.6f}".format(
@@ -191,22 +192,22 @@ def main(z, econf, nscf=25, mixing=0.5):
     plt.ylim(1e-4, rho.max() * 2)
     plt.xlim(0, 5)
     plt.savefig("rho_z{:03d}_{}.png".format(z, '_'.join(econf.split())))
-
     return energy
 
 
-def setup_grid(npoint=256):
+def setup_grid(npoint=600):
     """Create a suitable grid for integration and differentiation."""
     def tf(t, np):
         """Transform from [-1, 1] to [0, big_radius]."""
         u = (1 + t) / 2
-        # return 50 * u**2
-        # return 10 * np.arctanh(u)**2
-        return 1e-5 * np.exp(17 * u)
+        left = 1e-9
+        right = 1e4
+        alpha = np.log(right / left)
+        return left * np.exp(alpha * u)
     return TransformedGrid(tf, npoint)
 
 
-def setup_obasis(grid, nbasis=40):
+def setup_obasis(grid, nbasis=100):
     """Define a radial orbital basis set on a grid, for the U=R/r functions.
 
     Returns
@@ -214,12 +215,16 @@ def setup_obasis(grid, nbasis=40):
     obasis
         Array with orbital basis functions, each row representing one basis
         function.
+
     """
     obasis = []
+    alphas = 10**np.linspace(-5, 8, nbasis)
     for alpha in alphas:
         # Note the multiplication with the radius.
         fn = np.exp(-alpha * grid.points**2) * grid.points
-        fn /= np.sqrt(grid.integrate(fn**2))
+        fn *= np.sqrt((2 * alpha / np.pi)**1.5 * 4 * np.pi)
+        assert_allclose(np.sqrt(grid.integrate(fn**2)), 1.0,
+                        atol=1e-13, rtol=0, err_msg=str(alpha))
         obasis.append(fn)
     return np.array(obasis)
 
@@ -257,17 +262,12 @@ def compute_overlap_operator(grid, obasis):
 
 def compute_radial_kinetic_operator(grid, obasis):
     """Return the radial kinetic energy operator."""
+    # For some reason the form with the second derivative is numerically more
+    # precise.
     return compute_operator(obasis, (
         lambda fn0, fn1: grid.integrate(-fn0 * grid.derivative(fn1, 2)) / 2
         # lambda fn0, fn1: grid.integrate(grid.derivative(fn0) * grid.derivative(fn1)) / 2
     ))
-
-
-def compute_angular_kinetic_operator(grid, obasis, l):
-    """Return the angular kinetic energy operator."""
-    # centrifugal potential (due to angular velocity)
-    v_angkin = l * (l + 1) / (2 * grid.points**2)
-    return compute_potential_operator(grid, obasis, v_angkin)
 
 
 def compute_potential_operator(grid, obasis, v):
@@ -310,13 +310,13 @@ def interpret_econf(econf):
         occup = float(key[2:])
         if occup > 0:
             n = int(key[0])
-            l = char2l(key[1])
-            while len(occups) < l + 1:
+            angmom = char2l(key[1])
+            while len(occups) < angmom + 1:
                 occups.append([])
-            i = n - l - 1
-            while len(occups[l]) < i + 1:
-                occups[l].append([])
-            occups[l][i] = occup
+            i = n - angmom - 1
+            while len(occups[angmom]) < i + 1:
+                occups[angmom].append([])
+            occups[angmom][i] = occup
     return occups
 
 

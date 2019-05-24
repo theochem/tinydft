@@ -90,12 +90,12 @@ class TransformedGrid:
 
     def antiderivative(self, fn, order=1):
         """Return the antiderivative to given order."""
-        for i in range(order):
+        for _ in range(order):
             fn = self.legendre_grid.antiderivative(fn * self.derivs)
         return fn
 
     def derivative(self, fn, order=1):
         """Return the derivative to given order."""
-        for i in range(order):
+        for _ in range(order):
             fn = self.legendre_grid.derivative(fn) / self.derivs
         return fn
