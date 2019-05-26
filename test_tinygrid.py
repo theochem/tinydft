@@ -85,8 +85,11 @@ def test_tf_grid_hydrogen_norm():
     """Test the radial grid with the normalization of hydrogen orbitals."""
     def tf(t, np):
         u = (1 + t) / 2
-        return 1e-4 * np.exp(15 * u)
-    grid = TransformedGrid(tf, 201)
+        left = 1e-2
+        right = 1e3
+        alpha = np.log(right / left)
+        return left * (np.exp(alpha * u) - 1)
+    grid = TransformedGrid(tf, 101)
 
     fac = np.math.factorial
     norms = []
@@ -101,14 +104,17 @@ def test_tf_grid_hydrogen_norm():
             poly = eval_genlaguerre(n - l - 1, 2 * l + 1, rho)
             psi = normalization * np.exp(-rho / 2) * rho**l * poly
             norms.append(grid.integrate(psi * psi * vol))
-    assert_allclose(norms, 1.0, atol=1e-11, rtol=0)
+    assert_allclose(norms, 1.0, atol=1e-14, rtol=0)
 
 
 def test_tf_grid_hydrogen_few():
     def tf(t, np):
         u = (1 + t) / 2
-        return 1e-4 * np.exp(15 * u)
-    grid = TransformedGrid(tf, 201)
+        left = 1e-2
+        right = 1e3
+        alpha = np.log(right / left)
+        return left * (np.exp(alpha * u) - 1)
+    grid = TransformedGrid(tf, 101)
 
     # Solutions of the radial equation (U=R/r)
     psi_1s = np.sqrt(4 * np.pi) * grid.points * np.exp(-grid.points) / np.sqrt(np.pi)
@@ -118,11 +124,11 @@ def test_tf_grid_hydrogen_few():
     # Check norms and energies
     for eps, psi in [(-0.5, psi_1s), (-0.125, psi_2s)]:
         norm = grid.integrate(psi**2)
-        assert_allclose(norm, 1.0)
+        assert_allclose(norm, 1.0, atol=1e-14, rtol=0)
         ekin = grid.integrate(-psi * grid.derivative(psi, 2) / 2)
-        assert_allclose(ekin, -eps, atol=1e-6)
+        assert_allclose(ekin, -eps, atol=1e-11, rtol=0)
         epot = grid.integrate(-psi**2 / grid.points)
-        assert_allclose(epot, 2 * eps)
+        assert_allclose(epot, 2 * eps, atol=1e-14, rtol=0)
 
     dot = grid.integrate(psi_1s * psi_2s)
-    assert_allclose(dot, 0.0, atol=1e-12, rtol=0)
+    assert_allclose(dot, 0.0, atol=1e-15, rtol=0)

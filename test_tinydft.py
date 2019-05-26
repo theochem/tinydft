@@ -38,9 +38,49 @@ def test_char2l():
     assert char2l('D') == 2
 
 
-@pytest.mark.parametrize("z", [1, 10, 100])
+def get_hydrogenic(grid, z, angmom):
+    psis = []
+    for i in range(7 - angmom):
+        n = i + 1 + angmom
+        factor = z**2 / n**2
+
+        # Compute the orbital analytically
+        fac = np.math.factorial
+        normalization = np.sqrt(
+            (2 * z / n)**3 * fac(n - angmom - 1) / (2 * n * fac(n + angmom)))
+        rho = grid.points * 2 * z / n
+        poly = eval_genlaguerre(n - angmom - 1, 2 * angmom + 1, rho)
+        psi = normalization * np.exp(-rho / 2) * rho**angmom * poly * grid.points
+        psis.append((n, factor, psi))
+    return psis
+
+
+@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
 @pytest.mark.parametrize("angmom", [0, 1, 2, 3, 4, 5, 6])
-def test_hydrogenic(z, angmom):
+def test_hydrogenic_grid(z, angmom):
+    grid = setup_grid()
+    psis = get_hydrogenic(grid, z, angmom)
+    if angmom > 0:
+        v_angkin = angmom * (angmom + 1) / (2 * grid.points**2)
+    v_ext = -z / grid.points
+    for i, (n, factor, psi) in enumerate(psis):
+        case = "i={} n={}".format(i, n)
+
+        # Check the observables for the analytic solution on the grid.
+        norm = grid.integrate(psi**2)
+        ekin = grid.integrate(-psi * grid.derivative(psi, 2) / 2)
+        if angmom > 0:
+            ekin += grid.integrate(psi**2 * v_angkin)
+        ena = grid.integrate(psi**2 * v_ext)
+        assert_allclose(norm, 1, atol=1e-14, rtol=0, err_msg=case)
+        # atol is set to micro-Hartree precision
+        assert_allclose(ekin, factor / 2, atol=4e-11, rtol=0, err_msg=case)
+        assert_allclose(ena, -factor, atol=4e-11, rtol=0, err_msg=case)
+
+
+@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
+@pytest.mark.parametrize("angmom", [0, 1, 2, 3, 4, 5, 6])
+def test_hydrogenic_op(z, angmom):
     grid = setup_grid()
     obasis = setup_obasis(grid)
     olp = compute_overlap_operator(grid, obasis)
@@ -51,61 +91,31 @@ def test_hydrogenic(z, angmom):
     v_ext = -z / grid.points
     na = compute_potential_operator(grid, obasis, v_ext)
     evals, evecs = eigh(kin + na, olp)
-    for i in range(7 - angmom):
-        n = i + 1 + angmom
+    psis = get_hydrogenic(grid, z, angmom)
+    for i, (n, factor, psi) in enumerate(psis):
         case = "i={} n={}".format(i, n)
-        factor = z**2 / n**2
-
-        # Compute the orbital analytically
-        fac = np.math.factorial
-        normalization = np.sqrt(
-            (2 * z / n)**3 * fac(n - angmom - 1) / (2 * n * fac(n + angmom)))
-        rho = grid.points * 2 * z / n
-        poly = eval_genlaguerre(n - angmom - 1, 2 * angmom + 1, rho)
-        psi = normalization * np.exp(-rho / 2) * rho**angmom * poly * grid.points
-
-        # Check the observables for the analytic solution on the grid.
-        norm = grid.integrate(psi**2)
-        ekin = grid.integrate(-psi * grid.derivative(psi, 2) / 2)
-        if angmom > 0:
-            ekin += grid.integrate(psi**2 * v_angkin)
-        ena = grid.integrate(psi**2 * v_ext)
-        assert_allclose(norm, 1, atol=1e-13, rtol=0, err_msg=case)
-        # atol is set to micro-Hartree precision
-        assert_allclose(ekin, factor / 2, atol=1e-6, rtol=0, err_msg=case)
-        assert_allclose(ena, -factor, atol=1e-6, rtol=0, err_msg=case)
-
-        # Check the observables for the coefficients derived from the analytic
-        # solution.
-        coeffs = np.linalg.solve(olp, np.dot(obasis, psi * grid.weights))
-        norm = np.einsum('i,ij,j', coeffs, olp, coeffs)
-        ekin = np.einsum('i,ij,j', coeffs, kin, coeffs)
-        ena = np.einsum('i,ij,j', coeffs, na, coeffs)
-        assert_allclose(norm, 1, atol=1e-10, rtol=0, err_msg=case)
-        assert_allclose(ena, -factor, atol=1e-3, rtol=1e-3, err_msg=case)
-        assert_allclose(ekin, factor / 2, atol=1e-3, rtol=1e-3, err_msg=case)
-
         # Same test for the numerical solution
         norm = np.einsum('i,ij,j', evecs[:, i], olp, evecs[:, i])
         ekin = np.einsum('i,ij,j', evecs[:, i], kin, evecs[:, i])
         ena = np.einsum('i,ij,j', evecs[:, i], na, evecs[:, i])
         assert_allclose(norm, 1, atol=1e-10, rtol=0, err_msg=case)
-        assert_allclose(ena, -factor, atol=1e-3, rtol=1e-3, err_msg=case)
-        assert_allclose(ekin, factor / 2, atol=1e-3, rtol=1e-3, err_msg=case)
-        assert_allclose(evals[i], -factor / 2, atol=1e-3, rtol=1e-3, err_msg=case)
+        assert_allclose(ena, -factor, atol=0, rtol=1e-5, err_msg=case)
+        assert_allclose(ekin, factor / 2, atol=0, rtol=1e-5, err_msg=case)
+        assert_allclose(evals[i], -factor / 2, atol=0, rtol=1e-5, err_msg=case)
 
 
-def test_poisson():
+@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
+def test_poisson(z):
     # Numerically solve the electrostatic potential of an S-type Slater Density
     grid = setup_grid()
-    alpha = 0.7
+    alpha = 2 * z
     aux = np.exp(-alpha * grid.points)
     rho = aux * alpha**3 / (8 * np.pi)
     assert_allclose(grid.integrate(4 * np.pi * grid.points**2 * rho), 1.0, atol=1e-11, rtol=0)
     vnum = solve_poisson(grid, rho)
     vann = (1 - aux) / grid.points - alpha * aux / 2
     assert_allclose(vnum[-1], 1.0 / grid.points[-1], atol=1e-11, rtol=0)
-    assert_allclose(vnum, vann, atol=1e-3, rtol=0)
+    assert_allclose(vnum, vann, atol=2e-5, rtol=0)
 
 
 def test_interpret_econf():

@@ -14,7 +14,7 @@ The code is designed with the following criteria in mind:
   exchange(-correlation) potential and the grid transformation.
 
 - The numerical integration and differentiation algorithms should be accurate
-  enough to at least 3 significant digits in the total energy, but in many cases
+  enough to at least 5 significant digits in the total energy, but in many cases
   the numerical accuracy is better. (The pseudo-spectral method with Legendre
   polynomials is used.)
 

@@ -195,19 +195,19 @@ def main(z, econf, nscf=25, mixing=0.5):
     return energy
 
 
-def setup_grid(npoint=600):
+def setup_grid(npoint=256):
     """Create a suitable grid for integration and differentiation."""
     def tf(t, np):
         """Transform from [-1, 1] to [0, big_radius]."""
         u = (1 + t) / 2
-        left = 1e-9
+        left = 1e-3
         right = 1e4
         alpha = np.log(right / left)
-        return left * np.exp(alpha * u)
+        return left * (np.exp(alpha * u) - 1)
     return TransformedGrid(tf, npoint)
 
 
-def setup_obasis(grid, nbasis=100):
+def setup_obasis(grid, nbasis=96):
     """Define a radial orbital basis set on a grid, for the U=R/r functions.
 
     Returns
@@ -218,7 +218,7 @@ def setup_obasis(grid, nbasis=100):
 
     """
     obasis = []
-    alphas = 10**np.linspace(-5, 8, nbasis)
+    alphas = 10**np.linspace(-6, 8, nbasis)
     for alpha in alphas:
         # Note the multiplication with the radius.
         fn = np.exp(-alpha * grid.points**2) * grid.points
