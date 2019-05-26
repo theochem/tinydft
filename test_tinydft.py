@@ -157,5 +157,5 @@ def test_atom(z, num_regression, hydrogenic_ops):
                              op_kin_ang, op_ext * z, nscf=100)
     num_regression.check(
         {'energies': energies},
-        default_tolerance={'rtol': 1e-10, 'atol': 0},
+        default_tolerance={'rtol': 1e-8, 'atol': 0},
     )
