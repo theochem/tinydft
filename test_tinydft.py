@@ -38,30 +38,30 @@ def test_char2l():
     assert char2l('D') == 2
 
 
-def get_hydrogenic(grid, z, angmom):
+def get_hydrogenic_solutions(grid, z, l):
     psis = []
-    for i in range(7 - angmom):
-        n = i + 1 + angmom
+    for i in range(7 - l):
+        n = i + 1 + l
         factor = z**2 / n**2
 
         # Compute the orbital analytically
         fac = np.math.factorial
         normalization = np.sqrt(
-            (2 * z / n)**3 * fac(n - angmom - 1) / (2 * n * fac(n + angmom)))
+            (2 * z / n)**3 * fac(n - l - 1) / (2 * n * fac(n + l)))
         rho = grid.points * 2 * z / n
-        poly = eval_genlaguerre(n - angmom - 1, 2 * angmom + 1, rho)
-        psi = normalization * np.exp(-rho / 2) * rho**angmom * poly * grid.points
+        poly = eval_genlaguerre(n - l - 1, 2 * l + 1, rho)
+        psi = normalization * np.exp(-rho / 2) * rho**l * poly * grid.points
         psis.append((n, factor, psi))
     return psis
 
 
 @pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
-@pytest.mark.parametrize("angmom", [0, 1, 2, 3, 4, 5, 6])
-def test_hydrogenic_grid(z, angmom):
+@pytest.mark.parametrize("l", [0, 1, 2, 3, 4, 5, 6])
+def test_hydrogenic_grid(z, l):
     grid = setup_grid()
-    psis = get_hydrogenic(grid, z, angmom)
-    if angmom > 0:
-        v_angkin = angmom * (angmom + 1) / (2 * grid.points**2)
+    psis = get_hydrogenic_solutions(grid, z, l)
+    if l > 0:
+        v_angkin = l * (l + 1) / (2 * grid.points**2)
     v_ext = -z / grid.points
     for i, (n, factor, psi) in enumerate(psis):
         case = "i={} n={}".format(i, n)
@@ -69,7 +69,7 @@ def test_hydrogenic_grid(z, angmom):
         # Check the observables for the analytic solution on the grid.
         norm = grid.integrate(psi**2)
         ekin = grid.integrate(-psi * grid.derivative(psi, 2) / 2)
-        if angmom > 0:
+        if l > 0:
             ekin += grid.integrate(psi**2 * v_angkin)
         ena = grid.integrate(psi**2 * v_ext)
         assert_allclose(norm, 1, atol=1e-14, rtol=0, err_msg=case)
@@ -78,20 +78,31 @@ def test_hydrogenic_grid(z, angmom):
         assert_allclose(ena, -factor, atol=4e-11, rtol=0, err_msg=case)
 
 
-@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
-@pytest.mark.parametrize("angmom", [0, 1, 2, 3, 4, 5, 6])
-def test_hydrogenic_op(z, angmom):
+@pytest.fixture(scope="module")
+def hydrogenic_ops():
+    """Operators for the hydrogenic atom, computed only once for all tests."""
     grid = setup_grid()
     obasis = setup_obasis(grid)
     olp = compute_overlap_operator(grid, obasis)
-    kin = compute_radial_kinetic_operator(grid, obasis)
-    if angmom > 0:
-        v_angkin = angmom * (angmom + 1) / (2 * grid.points**2)
-        kin += compute_potential_operator(grid, obasis, v_angkin)
-    v_ext = -z / grid.points
-    na = compute_potential_operator(grid, obasis, v_ext)
+    kin_rad = compute_radial_kinetic_operator(grid, obasis)
+    kin_ang = compute_potential_operator(grid, obasis, grid.points**-2)
+    na = compute_potential_operator(grid, obasis, -grid.points**-1)
+    return grid, obasis, olp, kin_rad, kin_ang, na
+
+
+@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
+@pytest.mark.parametrize("l", [0, 1, 2, 3, 4, 5, 6])
+def test_hydrogenic_op(z, l, hydrogenic_ops):
+    grid, obasis, olp, kin_rad, kin_ang, na = hydrogenic_ops
+    # Created modified copies of the operators. Do not modificy in place to
+    # avoid side-effects.
+    kin = kin_rad.copy()
+    if l > 0:
+        angmom_factor = (l * (l + 1)) / 2
+        kin += kin_ang * angmom_factor
+    na = na * z
     evals, evecs = eigh(kin + na, olp)
-    psis = get_hydrogenic(grid, z, angmom)
+    psis = get_hydrogenic_solutions(grid, z, l)
     for i, (n, factor, psi) in enumerate(psis):
         case = "i={} n={}".format(i, n)
         # Same test for the numerical solution

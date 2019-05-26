@@ -23,22 +23,23 @@ from __future__ import print_function, division  # Py 2.7 compatibility
 import numpy as np
 from numpy.testing import assert_allclose
 from numpy.polynomial.legendre import legval
+import pytest
 from scipy.special import eval_genlaguerre
 
 from tinygrid import *
 
 
-def test_low_grid():
-    for npoint in range(10, 20):
-        grid = LegendreGrid(npoint)
-        assert grid.basis.shape == (npoint, npoint)
-        assert grid.basis_inv.shape == (npoint, npoint)
-        fn1 = np.random.uniform(0, 1, npoint)
-        coeffs = np.dot(grid.basis_inv, fn1)
-        fn2 = np.dot(grid.basis, coeffs)
-        assert_allclose(fn1, fn2, atol=1e-14)
-        fn3 = legval(grid.points, coeffs)
-        assert_allclose(fn1, fn3, atol=1e-14)
+@pytest.mark.parametrize("npoint", range(10, 20))
+def test_low_grid(npoint):
+    grid = LegendreGrid(npoint)
+    assert grid.basis.shape == (npoint, npoint)
+    assert grid.basis_inv.shape == (npoint, npoint)
+    fn1 = np.random.uniform(0, 1, npoint)
+    coeffs = np.dot(grid.basis_inv, fn1)
+    fn2 = np.dot(grid.basis, coeffs)
+    assert_allclose(fn1, fn2, atol=1e-14)
+    fn3 = legval(grid.points, coeffs)
+    assert_allclose(fn1, fn3, atol=1e-14)
 
 
 def test_low_grid_sin():
@@ -81,7 +82,8 @@ def test_tf_grid_exp():
     assert_allclose(fnd, -fn, atol=1e-7, rtol=0)
 
 
-def test_tf_grid_hydrogen_norm():
+@pytest.mark.parametrize("nl", sum([[(n, l) for l in range(n)] for n in range(5)], []))
+def test_tf_grid_hydrogen_norm(nl):
     """Test the radial grid with the normalization of hydrogen orbitals."""
     def tf(t, np):
         u = (1 + t) / 2
@@ -94,16 +96,15 @@ def test_tf_grid_hydrogen_norm():
     fac = np.math.factorial
     norms = []
     vol = 4 * np.pi * grid.points**2
-    for n in range(1, 5):
-        for l in range(n):
-            # This is the same as on Wikipedia, except that the spherical
-            # harmonic is replaced by 1/(4*pi).
-            normalization = np.sqrt(
-                (2 / n)**3 * fac(n - l - 1) / (2 * n * fac(n + l) * 4 * np.pi))
-            rho = grid.points * 2 / n
-            poly = eval_genlaguerre(n - l - 1, 2 * l + 1, rho)
-            psi = normalization * np.exp(-rho / 2) * rho**l * poly
-            norms.append(grid.integrate(psi * psi * vol))
+    n, l = nl
+    # This is the same as on Wikipedia, except that the spherical
+    # harmonic is replaced by 1/(4*pi).
+    normalization = np.sqrt(
+        (2 / n)**3 * fac(n - l - 1) / (2 * n * fac(n + l) * 4 * np.pi))
+    rho = grid.points * 2 / n
+    poly = eval_genlaguerre(n - l - 1, 2 * l + 1, rho)
+    psi = normalization * np.exp(-rho / 2) * rho**l * poly
+    norms.append(grid.integrate(psi * psi * vol))
     assert_allclose(norms, 1.0, atol=1e-14, rtol=0)
 
 
