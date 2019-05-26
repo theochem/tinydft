@@ -309,13 +309,13 @@ def interpret_econf(econf):
         occup = float(key[2:])
         if occup > 0:
             n = int(key[0])
-            angmom = char2l(key[1])
-            while len(occups) < angmom + 1:
+            l = char2l(key[1])
+            while len(occups) < l + 1:
                 occups.append([])
-            i = n - angmom - 1
-            while len(occups[angmom]) < i + 1:
-                occups[angmom].append([])
-            occups[angmom][i] = occup
+            i = n - l - 1
+            while len(occups[l]) < i + 1:
+                occups[l].append([])
+            occups[l][i] = occup
     return occups
 
 
