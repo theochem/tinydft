@@ -102,12 +102,8 @@ def main(z, econf, nscf=25, mixing=0.5):
     op_ext = compute_potential_operator(grid, obasis, v_ext)
     # The core Hamiltonian for l = 0 (s).
     op_core_s = op_kin_rad + op_ext
-    # angular kinetic energy operators.
-    ops_kin_ang = {}
-    for l in range(1, maxl + 1):
-        v_angkin = l * (l + 1) / (2 * grid.points**2)
-        op_kin_ang = compute_potential_operator(grid, obasis, v_angkin)
-        ops_kin_ang[l] = op_kin_ang
+    # angular kinetic energy operator for l=1.
+    op_kin_ang = compute_potential_operator(grid, obasis, grid.points**-2)
 
     # Dictionary for Fock operators from previous iteration, used for mixing.
     ops_fock_old = {}
@@ -165,7 +161,8 @@ def main(z, econf, nscf=25, mixing=0.5):
             # The new fock matrix.
             op_fock = op_core_s + op_jxc
             if l > 0:
-                op_fock += ops_kin_ang[l]
+                angmom_factor = (l * (l + 1)) / 2
+                op_fock += op_kin_ang * angmom_factor
             # Mix with the old fock matrix, if available.
             op_fock_old = ops_fock_old.get(l)
             if op_fock_old is None:
@@ -181,7 +178,9 @@ def main(z, econf, nscf=25, mixing=0.5):
                 orb_u = evecs[:, i]
                 energy_kin_rad += occup * np.einsum('i,ij,j', orb_u, op_kin_rad, orb_u)
                 if l > 0:
-                    energy_kin_ang += occup * np.einsum('i,ij,j', orb_u, op_kin_ang, orb_u)
+                    energy_kin_ang += (
+                        occup * np.einsum('i,ij,j', orb_u, op_kin_ang, orb_u)
+                        * angmom_factor)
 
     # Plot the electron density.
     plt.clf()
