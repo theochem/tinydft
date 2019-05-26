@@ -67,7 +67,7 @@ pytest_.
 .. code-block:: bash
 
     # Install pytest in case you don't have it yet.
-    python3 -m pip install pytest --upgrade
+    python3 -m pip install pytest pytest-regressions pandas --upgrade
     pytest
 
 
@@ -84,10 +84,7 @@ In order of increasing difficulty:
 
 2) Write a driver script ``driver.py``, which uses ``tinydft.py`` as a python
    module to compute the ionization potentials and electron affinities of all
-   atoms in the periodic table. (See how far you can get before the numerical
-   algorithms break.) Implement *Madelung energy ordering rule* to set the
-   electronic configuration. See
-   https://en.wikipedia.org/wiki/Aufbau_principle#Madelung_energy_ordering_rule
+   atoms in the periodic table.
 
 3) Add a second unit test for the Poisson solver in ``test_tinydft.py``. The
    current unit test checks if the Poisson solver can correctly compute the

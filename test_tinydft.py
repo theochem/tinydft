@@ -137,3 +137,25 @@ def test_interpret_econf():
     assert occups[0][0] == 1.0
     assert occups[0][1] == 2.0
     assert occups[1][0] == 3.0
+
+
+def test_klechkowski():
+    assert klechkowski(1) == '1s1'
+    assert klechkowski(2) == '1s2'
+    assert klechkowski(10) == '1s2 2s2 2p6'
+    assert klechkowski(23) == '1s2 2s2 2p6 3s2 3p6 4s2 3d3'
+    assert klechkowski(118) == ('1s2 2s2 2p6 3s2 3p6 4s2 3d10 4p6 5s2 4d10 5p6 '
+                                '6s2 4f14 5d10 6p6 7s2 5f14 6d10 7p6')
+
+
+@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
+def test_atom(z, num_regression, hydrogenic_ops):
+    econf = klechkowski(z)
+    occups = interpret_econf(econf)
+    grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext = hydrogenic_ops
+    energies, rho = scf_atom(occups, grid, obasis, overlap, op_kin_rad,
+                             op_kin_ang, op_ext * z, nscf=100)
+    num_regression.check(
+        {'energies': energies},
+        default_tolerance={'rtol': 1e-10, 'atol': 0},
+    )

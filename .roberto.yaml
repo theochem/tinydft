@@ -1,6 +1,6 @@
 project:
   name: tinydft
-  conda_requirements: [numpy, scipy, autograd, matplotlib]
+  conda_requirements: [numpy, scipy, autograd, matplotlib, pytest-regressions, pandas]
   packages:
     - dist_name: tinydft
       tools:
