@@ -295,15 +295,17 @@ def interpret_econf(econf):
     occups = []
     for key in econf.split():
         occup = float(key[2:])
-        if occup > 0:
-            n = int(key[0])
-            l = char2l(key[1])
-            while len(occups) < l + 1:
-                occups.append([])
-            i = n - l - 1
-            while len(occups[l]) < i + 1:
-                occups[l].append([])
-            occups[l][i] = occup
+        if occup <= 0:
+            raise TypeError("Occuptions in the electronic configuration must "
+                            "be strictly positive.")
+        n = int(key[0])
+        l = char2l(key[1])
+        while len(occups) < l + 1:
+            occups.append([])
+        i = n - l - 1
+        while len(occups[l]) < i + 1:
+            occups[l].append([])
+        occups[l][i] = occup
     return occups
 
 

@@ -137,6 +137,10 @@ def test_interpret_econf():
     assert occups[0][0] == 1.0
     assert occups[0][1] == 2.0
     assert occups[1][0] == 3.0
+    with pytest.raises(TypeError):
+        interpret_econf('1s1 2s0')
+    with pytest.raises(TypeError):
+        interpret_econf('1s1 2s-2')
 
 
 def test_klechkowski():
