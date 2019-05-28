@@ -161,12 +161,10 @@ def scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext, nscf
             # Compute the total density.
             rho = 0.0
             for l in range(maxl + 1):
-                for i, occup in enumerate(occups[l]):
-                    # orbital on grid (U)
-                    orb_grid_u = np.dot(eps_orbs_u[l][1][:, i], obasis)
-                    # orbital on grid (R) with normalization of spherical harmonic.
-                    orb_grid_r = orb_grid_u / grid.points / np.sqrt(4 * np.pi)
-                    rho += occup * (orb_grid_r)**2
+                norb = len(occups[l])
+                orbs_grid_u = np.dot(eps_orbs_u[l][1].T, obasis)
+                orbs_grid_r = orbs_grid_u / grid.points / np.sqrt(4 * np.pi)
+                rho += np.dot(occups[l], orbs_grid_r**2)
             # Check the total number of electrons.
             assert_allclose(grid.integrate(rho * vol), nelec, atol=1e-10, rtol=0)
             # Solve the Poisson problem for the new density.
@@ -202,17 +200,14 @@ def scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext, nscf
                 op_fock_mix = mixing * op_fock + (1 - mixing) * op_fock_old
             ops_fock_old[l] = op_fock_mix
             # Solve for the orbitals.
-            evals, evecs = eigh(op_fock_mix, overlap)
+            evals, evecs = eigh(op_fock_mix, overlap, eigvals=(0, len(occups[l]) - 1))
             eps_orbs_u[l] = evals, evecs
             # Compute the kinetic energy contributions using the orbitals.
-            for i, occup in enumerate(occups[l]):
-                orb_u = evecs[:, i]
-                energy_kin_rad += occup * np.einsum('i,ij,j', orb_u, op_kin_rad, orb_u)
-                energy_ext += occup * np.einsum('i,ij,j', orb_u, op_ext, orb_u)
-                if l > 0:
-                    energy_kin_ang += (
-                        occup * np.einsum('i,ij,j', orb_u, op_kin_ang, orb_u)
-                        * angmom_factor)
+            energy_kin_rad += np.einsum('i,ji,jk,ki', occups[l], evecs, op_kin_rad, evecs)
+            energy_ext += np.einsum('i,ji,jk,ki', occups[l], evecs, op_ext, evecs)
+            if l > 0:
+                energy_kin_ang += (np.einsum('i,ji,jk,ki', occups[l], evecs, op_kin_ang, evecs)
+                                   * angmom_factor)
 
     # Plot the electron density.
     energies = np.array([energy, energy_kin_rad, energy_kin_ang, energy_hartree,
