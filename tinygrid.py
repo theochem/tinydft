@@ -27,41 +27,92 @@ from numpy.polynomial.legendre import legvander, legder, legint, leggauss
 __all__ = ['LegendreGrid', 'TransformedGrid']
 
 
-class LegendreGrid:
+class BaseGrid:
+    """Basic grid API, only for (vectorized) definite integrals."""
+
+    def __init__(self, points, weights):
+        self.points = points
+        self.weights = weights
+
+    def integrate(self, *multivalues):
+        """Compute the definite integrals (of products) of functions.
+
+        Parameters
+        ----------
+        values1, values2, ...
+            Each argument is an n-dimensional array of function values, where
+            the last index corresponds to the grid points. The arrays are
+            contracted over their last index and the resulting functions are
+            all integrated. This allows many products of functions to be
+            integrated in one shot.
+
+        Returns
+        -------
+        integrals
+            All integrals of products of functions. The shape is
+            ``sum(values.shape[:-1] for values in multivalues)``.
+
+        """
+        args = [self.weights, [0]]
+        sublistout = []
+        counter = 1
+        for values in multivalues:
+            args.append(values)
+            nkeep = values.ndim - 1
+            sublist = list(range(counter, counter + nkeep)) + [0]
+            sublistout += sublist[:-1]
+            args.append(sublist)
+            counter += nkeep
+        args.append(sublistout)
+        return np.einsum(*args, optimize=True)
+
+
+class LegendreGrid(BaseGrid):
     """Standard Gauss-Legendre grid.
 
     The derivative and antiderivative are implemented with the spectral method.
+
+    All methods in this class are designed to vectorize operations. Each method
+    argument can be an n-dimensional array, of which the last index corresponds
+    to grid points or Legendre polynomials. The functions vectorize over the
+    preceding indices.
     """
 
     def __init__(self, npoint):
         """Initialize a Gauss-Legendre grid with given number of points."""
-        self.points, self.weights = leggauss(npoint)
-
-        # Basis functions are used to obtain the Legendre coefficients
-        # given a function on a grid. (Mind the normalization.)
+        BaseGrid.__init__(self, *leggauss(npoint))
+        # Basis functions are used to transform from grid data to Legendre
+        # coefficients and back.
         self.basis = legvander(self.points, npoint - 1)
         U, S, Vt = np.linalg.svd(self.basis)
         self.basis_inv = np.einsum('ji,j,kj->ik', Vt, 1 / S, U)
 
-    def integrate(self, fn):
-        """Compute the definite integral of fn."""
-        return np.dot(self.weights, fn)
+    def _tocoeffs(self, values):
+        """Convert function values on a grid to Legendre coefficients."""
+        return np.dot(values, self.basis_inv.T)
 
-    def antiderivative(self, fn, order=1):
-        """Return the antiderivative to given order."""
-        coeffs = np.dot(self.basis_inv, fn)
-        coeffs_int = legint(coeffs, order)
-        return np.dot(self.basis, coeffs_int[:-1])
+    def _tovalues(self, coeffs):
+        """Convert Legendre coefficients to function values on a grid."""
+        return np.dot(coeffs, self.basis.T[:coeffs.shape[-1]])
 
-    def derivative(self, fn, order=1):
-        """Return the derivative to given order."""
-        coeffs = np.dot(self.basis_inv, fn)
-        coeffs_der = legder(coeffs, order)
-        return np.dot(self.basis[:, :-1], coeffs_der)
+    def antiderivative(self, values):
+        """Return the antiderivative."""
+        coeffs = self._tocoeffs(values)
+        coeffs_int = legint(coeffs, axis=-1)
+        return self._tovalues(coeffs_int[..., :-1])
+
+    def derivative(self, values):
+        """Return the derivative."""
+        coeffs = self._tocoeffs(values)
+        coeffs_der = legder(coeffs, axis=-1)
+        return self._tovalues(coeffs_der)
 
 
-class TransformedGrid:
-    """A custom transformation of the Legendre grid."""
+class TransformedGrid(BaseGrid):
+    """A custom transformation of the Legendre grid.
+
+    For vectorization, see documentation string of the Legendre class.
+    """
 
     def __init__(self, transform, npoint):
         """Initialize the transformed grid.
@@ -80,22 +131,15 @@ class TransformedGrid:
         from autograd import elementwise_grad
         import autograd.numpy as np
         self.legendre_grid = LegendreGrid(npoint)
-        self.points = transform(self.legendre_grid.points, np)
+        points = transform(self.legendre_grid.points, np)
         self.derivs = abs(elementwise_grad(transform)(self.legendre_grid.points, np))
-        self.weights = self.legendre_grid.weights * self.derivs
+        weights = self.legendre_grid.weights * self.derivs
+        BaseGrid.__init__(self, points, weights)
 
-    def integrate(self, fn):
-        """Compute the definite integral of fn."""
-        return np.dot(self.weights, fn)
+    def antiderivative(self, fn):
+        """Return the antiderivative."""
+        return self.legendre_grid.antiderivative(fn * self.derivs)
 
-    def antiderivative(self, fn, order=1):
-        """Return the antiderivative to given order."""
-        for _ in range(order):
-            fn = self.legendre_grid.antiderivative(fn * self.derivs)
-        return fn
-
-    def derivative(self, fn, order=1):
-        """Return the derivative to given order."""
-        for _ in range(order):
-            fn = self.legendre_grid.derivative(fn) / self.derivs
-        return fn
+    def derivative(self, fn):
+        """Return the derivative."""
+        return self.legendre_grid.derivative(fn) / self.derivs

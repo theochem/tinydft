@@ -84,9 +84,7 @@ In order of increasing difficulty:
 
 2) Write a driver script ``driver.py``, which uses ``tinydft.py`` as a python
    module to compute the ionization potentials and electron affinities of all
-   atoms in the periodic table. The expensive part of these calculation is the
-   initial setup of the operators, which are almost identic for eacht SCF run.
-   How can you avoid that these are recomputed for every SCF run?
+   atoms in the periodic table.
 
 3) Add a second unit test for the Poisson solver in ``test_tinydft.py``. The
    current unit test checks if the Poisson solver can correctly compute the

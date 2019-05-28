@@ -40,9 +40,8 @@ from tinygrid import TransformedGrid
 
 
 __all__ = [
-    'main', 'scf_atom', 'setup_grid', 'setup_obasis', 'compute_overlap_operator',
-    'compute_radial_kinetic_operator', 'compute_potential_operator',
-    'solve_poisson', 'xcfunctional', 'char2l', 'interpret_econf', 'klechkowski']
+    'main', 'scf_atom', 'setup_grid', 'setup_obasis', 'solve_poisson',
+    'xcfunctional', 'char2l', 'interpret_econf', 'klechkowski']
 
 
 def main(z, q):
@@ -64,21 +63,19 @@ def main(z, q):
     grid = setup_grid()
     obasis = setup_obasis(grid)
     # Compute the overlap matrix.
-    overlap = compute_overlap_operator(grid, obasis)
+    overlap = grid.integrate(obasis, obasis)
     evals_olp = np.linalg.eigvalsh(overlap)
     print("Number of radial grid points      {:8d}".format(len(grid.points)))
     print("Number of basis functions         {:8d}".format(obasis.shape[0]))
     print("Condition number of the overlap   {:8.1e}".format(evals_olp[-1] / evals_olp[0]))
-    print()
-    print("Precomputing some operators ...")
-    print()
 
     # Radial kinetic energy.
-    op_kin_rad = compute_radial_kinetic_operator(grid, obasis)
+    op_kin_rad = grid.integrate(obasis, -grid.derivative(grid.derivative(obasis))) / 2
+    # op_kin_rad = grid.integrate(grid.derivative(obasis), grid.derivative(obasis)) / 2
     # Interaction with the nuclear potential.
-    op_ext = compute_potential_operator(grid, obasis, -grid.points**-1)
+    op_ext = grid.integrate(obasis, obasis, -grid.points**-1)
     # angular kinetic energy operator for l=1.
-    op_kin_ang = compute_potential_operator(grid, obasis, grid.points**-2)
+    op_kin_ang = grid.integrate(obasis, obasis, grid.points**-2)
 
     energies, rho = scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext * z)
 
@@ -190,7 +187,7 @@ def scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext, nscf
         energy_kin_rad = 0.0
         energy_kin_ang = 0.0
         # Hartree and XC potential are the same for all angular momenta.
-        op_jxc = compute_potential_operator(grid, obasis, vhartree + vxc)
+        op_jxc = grid.integrate(obasis, obasis, vhartree + vxc)
         for l in range(maxl + 1):
             # The new fock matrix.
             op_fock = op_core_s + op_jxc
@@ -255,52 +252,6 @@ def setup_obasis(grid, nbasis=96):
                         atol=1e-13, rtol=0, err_msg=str(alpha))
         obasis.append(fn)
     return np.array(obasis)
-
-
-def compute_operator(obasis, compute):
-    """Driver for operator computation.
-
-    Parameters
-    ----------
-    obasis
-        The orbital basis array.
-    compute
-        A function taking two basis functions and returning the antiderivative
-        defining the operator.
-
-    Returns
-    -------
-    operator
-        (nbasis, nbasis) array.
-
-    """
-    nbasis = obasis.shape[0]
-    operator = np.zeros((nbasis, nbasis))
-    for i0, fn0 in enumerate(obasis):
-        for i1, fn1 in enumerate(obasis[:i0 + 1]):
-            operator[i0, i1] = compute(fn0, fn1)
-            operator[i1, i0] = operator[i0, i1]
-    return operator
-
-
-def compute_overlap_operator(grid, obasis):
-    """Return the overlap operator."""
-    return compute_potential_operator(grid, obasis, 1)
-
-
-def compute_radial_kinetic_operator(grid, obasis):
-    """Return the radial kinetic energy operator."""
-    # For some reason the form with the second derivative is numerically more
-    # precise.
-    return compute_operator(obasis, (
-        lambda fn0, fn1: grid.integrate(-fn0 * grid.derivative(fn1, 2)) / 2
-        # lambda fn0, fn1: grid.integrate(grid.derivative(fn0) * grid.derivative(fn1)) / 2
-    ))
-
-
-def compute_potential_operator(grid, obasis, v):
-    """Return an operator for the given potential v."""
-    return compute_operator(obasis, (lambda fn0, fn1: grid.integrate(fn0 * fn1 * v)))
 
 
 def solve_poisson(grid, rho):

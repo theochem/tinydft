@@ -68,7 +68,7 @@ def test_hydrogenic_grid(z, l):
 
         # Check the observables for the analytic solution on the grid.
         norm = grid.integrate(psi**2)
-        ekin = grid.integrate(-psi * grid.derivative(psi, 2) / 2)
+        ekin = grid.integrate(-psi * grid.derivative(grid.derivative(psi)) / 2)
         if l > 0:
             ekin += grid.integrate(psi**2 * v_angkin)
         ena = grid.integrate(psi**2 * v_ext)
@@ -83,10 +83,10 @@ def hydrogenic_ops():
     """Operators for the hydrogenic atom, computed only once for all tests."""
     grid = setup_grid()
     obasis = setup_obasis(grid)
-    olp = compute_overlap_operator(grid, obasis)
-    kin_rad = compute_radial_kinetic_operator(grid, obasis)
-    kin_ang = compute_potential_operator(grid, obasis, grid.points**-2)
-    na = compute_potential_operator(grid, obasis, -grid.points**-1)
+    olp = grid.integrate(obasis, obasis)
+    kin_rad = grid.integrate(obasis, -grid.derivative(grid.derivative(obasis))) / 2
+    kin_ang = grid.integrate(obasis, obasis, grid.points**-2)
+    na = grid.integrate(obasis, obasis, -grid.points**-1)
     return grid, obasis, olp, kin_rad, kin_ang, na
 
 
