@@ -242,16 +242,12 @@ def setup_obasis(grid, nbasis=96):
         function.
 
     """
-    obasis = []
     alphas = 10**np.linspace(-6, 8, nbasis)
-    for alpha in alphas:
-        # Note the multiplication with the radius.
-        fn = np.exp(-alpha * grid.points**2) * grid.points
-        fn *= np.sqrt((2 * alpha / np.pi)**1.5 * 4 * np.pi)
-        assert_allclose(np.sqrt(grid.integrate(fn**2)), 1.0,
-                        atol=1e-13, rtol=0, err_msg=str(alpha))
-        obasis.append(fn)
-    return np.array(obasis)
+    obasis = np.exp(-np.outer(alphas, grid.points**2)) * grid.points
+    normalizations = np.sqrt((2 * alphas / np.pi)**1.5 * 4 * np.pi)
+    obasis *= normalizations[:, np.newaxis]
+    assert_allclose(np.sqrt(grid.integrate(obasis**2)), 1.0, atol=1e-13, rtol=0)
+    return obasis
 
 
 def solve_poisson(grid, rho):
