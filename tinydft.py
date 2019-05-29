@@ -26,7 +26,7 @@ priori.
 Atomic units are used throughout.
 """
 
-from __future__ import print_function, division  # Py 2.7 compatibility
+from typing import List, Tuple
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -45,7 +45,7 @@ __all__ = [
     'interpret_econf', 'klechkowski']
 
 
-def main(atnum, atcharge):
+def main(atnum: float, atcharge: float):
     """Run an atomic DFT calculation.
 
     Parameters
@@ -58,7 +58,7 @@ def main(atnum, atcharge):
     """
     econf = klechkowski(atnum - atcharge)
     occups = interpret_econf(econf)
-    print("Nuclear charge                    {:8d}".format(atnum))
+    print("Nuclear charge                    {:8.1f}".format(atnum))
     print("Electronic configuration          {:s}".format(str(econf)))
 
     grid = setup_grid()
@@ -82,7 +82,9 @@ def main(atnum, atcharge):
 
 
 # pylint: disable=too-many-statements
-def scf_atom(atnum, occups, grid, basis, nscf=25, mixing=0.5):
+def scf_atom(atnum: float, occups: List[List[float]], grid: TransformedGrid,
+             basis: Basis, nscf: int = 25, mixing: float = 0.5) \
+        -> Tuple[np.ndarray, np.ndarray]:
     """Perform a self-consistent field atomic calculation.
 
     Parameters
@@ -135,37 +137,12 @@ def scf_atom(atnum, occups, grid, basis, nscf=25, mixing=0.5):
           "=============== ===============")
 
     # SCF cycle
+    # For the first iteration, the density is set to zero to obtain the core guess.
+    rho = np.zeros(len(grid.points))
+    vhartree = np.zeros(len(grid.points))
+    vxc = np.zeros(len(grid.points))
     for iscf in range(nscf):
-        # A) Build the density and derived quantities.
-        if iscf == 0:
-            # In the first iteration, the density is set to zero to obtain the
-            # core guess.
-            rho = np.zeros(len(grid.points))
-            vhartree = np.zeros(len(grid.points))
-            vxc = np.zeros(len(grid.points))
-            print("  0      (guess)")
-        else:
-            # Compute the total density.
-            rho = 0.0
-            for angqn in range(maxangqn + 1):
-                orbs_grid_u = np.dot(eps_orbs_u[angqn][1].T, basis.fnvals)
-                orbs_grid_r = orbs_grid_u / grid.points / np.sqrt(4 * np.pi)
-                rho += np.dot(occups[angqn], orbs_grid_r**2)
-            # Check the total number of electrons.
-            assert_allclose(grid.integrate(rho * vol), nelec, atol=1e-10, rtol=0)
-            # Solve the Poisson problem for the new density.
-            vhartree = solve_poisson(grid, rho)
-            energy_hartree = 0.5 * grid.integrate(vhartree * rho * vol)
-            # Compute the exchange-correlation potential and energy density.
-            exc, vxc = xcfunctional(rho, excfunction)
-            energy_xc = grid.integrate(exc * vol)
-            # Compute the total energy.
-            energy = energy_kin_rad + energy_kin_ang + energy_hartree + energy_xc + energy_ext
-            print("{:3d} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f}".format(
-                iscf, energy, energy_kin_rad, energy_kin_ang, energy_hartree, energy_xc,
-                energy_ext))
-
-        # B) Solve for each angular momentum the radial Schrodinger equation.
+        # A) Solve for each angular momentum the radial Schrodinger equation.
         eps_orbs_u = {}  # orbitals energy and radial orbitals: U = R/r
         energy_ext = 0.0
         energy_kin_rad = 0.0
@@ -198,15 +175,36 @@ def scf_atom(atnum, occups, grid, basis, nscf=25, mixing=0.5):
                     'i,ji,jk,ki',
                     occups[angqn], evecs, basis.kin_ang, evecs) * angmom_factor
 
+        # B) Build the density and derived quantities.
+        # Compute the total density.
+        rho = 0.0
+        for angqn in range(maxangqn + 1):
+            orbs_grid_u = np.dot(eps_orbs_u[angqn][1].T, basis.fnvals)
+            orbs_grid_r = orbs_grid_u / grid.points / np.sqrt(4 * np.pi)
+            rho += np.dot(occups[angqn], orbs_grid_r**2)
+        # Check the total number of electrons.
+        assert_allclose(grid.integrate(rho * vol), nelec, atol=1e-10, rtol=0)
+        # Solve the Poisson problem for the new density.
+        vhartree = solve_poisson(grid, rho)
+        energy_hartree = 0.5 * grid.integrate(vhartree * rho * vol)
+        # Compute the exchange-correlation potential and energy density.
+        exc, vxc = xcfunctional(rho, excfunction)
+        energy_xc = grid.integrate(exc * vol)
+        # Compute the total energy.
+        energy = energy_kin_rad + energy_kin_ang + energy_hartree + energy_xc + energy_ext
+        print("{:3d} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f}".format(
+            iscf, energy, energy_kin_rad, energy_kin_ang, energy_hartree, energy_xc,
+            energy_ext))
+
     energies = np.array([energy, energy_kin_rad, energy_kin_ang, energy_hartree,
                          energy_xc, energy_ext])
     return energies, rho
 
 
-def setup_grid(npoint=256):
+def setup_grid(npoint: int = 256) -> TransformedGrid:
     """Create a suitable grid for integration and differentiation."""
     # pylint: disable=redefined-outer-name
-    def transform(x, np):
+    def transform(x: np.ndarray, np) -> np.ndarray:
         """Transform from [-1, 1] to [0, big_radius]."""
         left = 1e-3
         right = 1e4
@@ -215,7 +213,7 @@ def setup_grid(npoint=256):
     return TransformedGrid(transform, npoint)
 
 
-def solve_poisson(grid, rho):
+def solve_poisson(grid: TransformedGrid, rho: np.ndarray) -> np.ndarray:
     """Solve the radial poisson equation for a spherically symmetric density."""
     norm = grid.integrate(4 * np.pi * grid.points**2 * rho)
     int1 = grid.antiderivative(grid.points * rho)
@@ -229,7 +227,7 @@ def solve_poisson(grid, rho):
     return pot
 
 
-def xcfunctional(rho, excfunction):
+def xcfunctional(rho: np.ndarray, excfunction) -> Tuple[np.ndarray, np.ndarray]:
     """Compute the exchange-(correlation) energy density and potential."""
     from autograd import elementwise_grad
     import autograd.numpy as agnp
@@ -242,12 +240,12 @@ def xcfunctional(rho, excfunction):
 ANGMOM_CHARACTERS = 'spdfghiklmnoqrtuvwxyzabce'
 
 
-def char2angqn(char):
+def char2angqn(char: str) -> int:
     """Return the angular momentum quantum number corresponding to a character."""
     return ANGMOM_CHARACTERS.index(char.lower())
 
 
-def interpret_econf(econf):
+def interpret_econf(econf: str) -> List[List[float]]:
     """Translate econf strings into occupation numbers per angular momentum.
 
     Parameters
@@ -263,7 +261,7 @@ def interpret_econf(econf):
         for each orbitals. The maximum occupation is 2 * (2 * angqn + 1).
 
     """
-    occups = []
+    occups: List[List[float]] = []
     for key in econf.split():
         occup = float(key[2:])
         if occup <= 0:
@@ -275,12 +273,12 @@ def interpret_econf(econf):
             occups.append([])
         i = priqn - angqn - 1
         while len(occups[angqn]) < i + 1:
-            occups[angqn].append([])
+            occups[angqn].append(0.0)
         occups[angqn][i] = occup
     return occups
 
 
-def klechkowski(nelec):
+def klechkowski(nelec: float) -> str:
     """Return the atomic electron configuration by following the Klechkowski rule."""
     priqn_plus_angqn = 1
     words = []

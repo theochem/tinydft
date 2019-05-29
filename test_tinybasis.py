@@ -18,8 +18,6 @@
 # --
 """Unit tests for Tiny DFT."""
 
-from __future__ import print_function, division  # Py 2.7 compatibility
-
 import numpy as np
 from numpy.testing import assert_allclose
 from scipy.linalg import eigh

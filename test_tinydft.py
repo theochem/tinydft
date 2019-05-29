@@ -18,8 +18,6 @@
 # --
 """Unit tests for Tiny DFT."""
 
-from __future__ import print_function, division  # Py 2.7 compatibility
-
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -50,7 +48,7 @@ def test_poisson(atnum):
     assert_allclose(vnum, vann, atol=2e-5, rtol=0)
 
 
-def test_interpret_econf():
+def test_interpret_econf1():
     occups = interpret_econf('1s1 2s2 2p3.0')
     assert len(occups) == 2
     assert len(occups[0]) == 2
@@ -64,8 +62,25 @@ def test_interpret_econf():
         interpret_econf('1s1 2s-2')
 
 
+def test_interpret_econf2():
+    occups = interpret_econf('1s1 3s2 3p2.5')
+    assert len(occups) == 2
+    assert len(occups[0]) == 3
+    assert len(occups[1]) == 2
+    assert occups[0][0] == 1.0
+    assert occups[0][1] == 0.0
+    assert occups[0][2] == 2.0
+    assert occups[1][0] == 0.0
+    assert occups[1][1] == 2.5
+    with pytest.raises(TypeError):
+        interpret_econf('1s1 2s0')
+    with pytest.raises(TypeError):
+        interpret_econf('1s1 2s-2')
+
+
 def test_klechkowski():
     assert klechkowski(1) == '1s1'
+    assert klechkowski(1.5) == '1s1.5'
     assert klechkowski(2) == '1s2'
     assert klechkowski(10) == '1s2 2s2 2p6'
     assert klechkowski(23) == '1s2 2s2 2p6 3s2 3p6 4s2 3d3'

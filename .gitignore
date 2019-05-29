@@ -8,3 +8,4 @@ coverage*.xml
 .coverage*
 matplotlibrc
 prof
+.mypy_cache

@@ -18,7 +18,7 @@
 # --
 """Tiny numerical integration library for Tiny DFT."""
 
-from __future__ import print_function, division  # Py 2.7 compatibility
+from typing import List, Callable
 
 import numpy as np
 from numpy.polynomial.legendre import legvander, legder, legint, leggauss
@@ -30,11 +30,11 @@ __all__ = ['LegendreGrid', 'TransformedGrid']
 class BaseGrid:
     """Basic grid API, only for (vectorized) definite integrals."""
 
-    def __init__(self, points, weights):
+    def __init__(self, points: np.ndarray, weights: np.ndarray):
         self.points = points
         self.weights = weights
 
-    def integrate(self, *multi_fnvals):
+    def integrate(self, *multi_fnvals: np.ndarray) -> np.ndarray:
         """Compute the definite integrals (of products) of functions.
 
         Parameters
@@ -54,7 +54,7 @@ class BaseGrid:
 
         """
         args = [self.weights, [0]]
-        sublistout = []
+        sublistout: List[int] = []
         counter = 1
         for fnvals in multi_fnvals:
             args.append(fnvals)
@@ -78,7 +78,7 @@ class LegendreGrid(BaseGrid):
     preceding indices.
     """
 
-    def __init__(self, npoint):
+    def __init__(self, npoint: int):
         """Initialize a Gauss-Legendre grid with given number of points."""
         BaseGrid.__init__(self, *leggauss(npoint))
         # Basis functions are used to transform from grid data to Legendre
@@ -88,21 +88,21 @@ class LegendreGrid(BaseGrid):
         U, S, Vt = np.linalg.svd(self.basis)
         self.basis_inv = np.einsum('ji,j,kj->ik', Vt, 1 / S, U)
 
-    def tocoeffs(self, fnvals):
+    def tocoeffs(self, fnvals: np.ndarray) -> np.ndarray:
         """Convert function values on a grid to Legendre coefficients."""
         return np.dot(fnvals, self.basis_inv.T)
 
-    def tofnvals(self, coeffs):
+    def tofnvals(self, coeffs: np.ndarray) -> np.ndarray:
         """Convert Legendre coefficients to function values on a grid."""
         return np.dot(coeffs, self.basis.T[:coeffs.shape[-1]])
 
-    def antiderivative(self, fnvals):
+    def antiderivative(self, fnvals: np.ndarray) -> np.ndarray:
         """Return the antiderivative."""
         coeffs = self.tocoeffs(fnvals)
         coeffs_int = legint(coeffs, axis=-1)
         return self.tofnvals(coeffs_int[..., :-1])
 
-    def derivative(self, fnvals):
+    def derivative(self, fnvals: np.ndarray) -> np.ndarray:
         """Return the derivative."""
         coeffs = self.tocoeffs(fnvals)
         coeffs_der = legder(coeffs, axis=-1)
@@ -115,7 +115,7 @@ class TransformedGrid(BaseGrid):
     For vectorization, see documentation string of the Legendre class.
     """
 
-    def __init__(self, transform, npoint):
+    def __init__(self, transform: Callable, npoint: int):
         """Initialize the transformed grid.
 
         Parameters
@@ -139,10 +139,10 @@ class TransformedGrid(BaseGrid):
         weights = self.legendre_grid.weights * self.derivs
         BaseGrid.__init__(self, points, weights)
 
-    def antiderivative(self, fnvals):
+    def antiderivative(self, fnvals: np.ndarray) -> np.ndarray:
         """Return the antiderivative."""
         return self.legendre_grid.antiderivative(fnvals * self.derivs)
 
-    def derivative(self, fnvals):
+    def derivative(self, fnvals: np.ndarray) -> np.ndarray:
         """Return the derivative."""
         return self.legendre_grid.derivative(fnvals) / self.derivs

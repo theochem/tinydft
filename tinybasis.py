@@ -25,6 +25,8 @@ from functools import wraps
 import numpy as np
 from numpy.testing import assert_allclose
 
+from tinygrid import TransformedGrid
+
 
 def memoize(method):
     """Wrap a function such that its result is computed only once.
@@ -32,7 +34,7 @@ def memoize(method):
     See https://en.wikipedia.org/wiki/Memoization
     """
     @wraps(method)
-    def wrapper(obj):
+    def wrapper(obj) -> np.ndarray:
         attrname = '_' + method.__name__
         result = getattr(obj, attrname, None)
         if result is None:
@@ -70,7 +72,8 @@ class Basis:
 
     """
 
-    def __init__(self, grid, alphamin=1e-6, alphamax=1e8, nbasis=80):
+    def __init__(self, grid: TransformedGrid, alphamin: float = 1e-6,
+                 alphamax: float = 1e8, nbasis: int = 80):
         """Initialize a basis.
 
         Parameters
@@ -93,42 +96,42 @@ class Basis:
         assert_allclose(np.sqrt(grid.integrate(self.fnvals**2)), 1.0, atol=7e-14, rtol=0)
 
     @property
-    def nbasis(self):
+    def nbasis(self) -> int:
         """Return the number of basis functions."""
         return self.fnvals.shape[0]
 
-    @property
+    @property  # type: ignore
     @memoize
-    def olp(self):
+    def olp(self) -> np.ndarray:
         """Return the overlap matrix."""
         alpha_sums = np.add.outer(self.alphas, self.alphas)
         alpha_prods = np.outer(self.alphas, self.alphas)
         return (2 * np.sqrt(2)) * (alpha_prods)**0.75 / alpha_sums**1.5
 
-    @property
+    @property  # type: ignore
     @memoize
-    def kin_rad(self):
+    def kin_rad(self) -> np.ndarray:
         """Return the radial kinetic energy operator."""
         alpha_sums = np.add.outer(self.alphas, self.alphas)
         alpha_prods = np.outer(self.alphas, self.alphas)
         return np.sqrt(72) * alpha_prods**1.75 / alpha_sums**2.5
 
-    @property
+    @property  # type: ignore
     @memoize
-    def kin_ang(self):
+    def kin_ang(self) -> np.ndarray:
         """Return the angular kinetic energy operator for angqn=1."""
         alpha_sums = np.add.outer(self.alphas, self.alphas)
         alpha_prods = np.outer(self.alphas, self.alphas)
         return np.sqrt(32) * (alpha_prods)**0.75 / np.sqrt(alpha_sums)
 
-    @property
+    @property  # type: ignore
     @memoize
-    def ext(self):
+    def ext(self) -> np.ndarray:
         """Return the operator for the interaction with the external field, i.e. a proton."""
         alpha_sums = np.add.outer(self.alphas, self.alphas)
         alpha_prods = np.outer(self.alphas, self.alphas)
         return -np.sqrt(32 / np.pi) / alpha_sums * alpha_prods**0.75
 
-    def pot(self, pot):
+    def pot(self, pot: np.ndarray) -> np.ndarray:
         """Return the operator for the interaction with a potential on a grid."""
         return self.grid.integrate(self.fnvals, self.fnvals, pot)
