@@ -70,7 +70,7 @@ class Basis:
 
     """
 
-    def __init__(self, grid, alphamin=1e-6, alphamax=1e8, nbasis=96):
+    def __init__(self, grid, alphamin=1e-6, alphamax=1e8, nbasis=80):
         """Initialize a basis.
 
         Parameters
@@ -88,9 +88,9 @@ class Basis:
         self.grid = grid
         self.alphas = 10**np.linspace(np.log10(alphamin), np.log10(alphamax), nbasis)
         self.fns = np.exp(-np.outer(self.alphas, grid.points**2)) * grid.points
-        self.normalizations = np.sqrt((2 * self.alphas / np.pi)**1.5 * 4 * np.pi)
+        self.normalizations = np.sqrt(np.sqrt(self.alphas))**3 * np.sqrt(np.sqrt(2 / np.pi) * 8)
         self.fns *= self.normalizations[:, np.newaxis]
-        assert_allclose(np.sqrt(grid.integrate(self.fns**2)), 1.0, atol=1e-13, rtol=0)
+        assert_allclose(np.sqrt(grid.integrate(self.fns**2)), 1.0, atol=7e-14, rtol=0)
 
     @property
     def nbasis(self):
@@ -101,28 +101,33 @@ class Basis:
     @memoize
     def olp(self):
         """Return the overlap matrix."""
-        return self.grid.integrate(self.fns, self.fns)
+        alpha_sums = np.add.outer(self.alphas, self.alphas)
+        alpha_prods = np.outer(self.alphas, self.alphas)
+        return (2 * np.sqrt(2)) * (alpha_prods)**0.75 / alpha_sums**1.5
 
     @property
     @memoize
     def kin_rad(self):
         """Return the radial kinetic energy operator."""
-        fns_d = self.grid.derivative(self.fns)
-        # return self.grid.integrate(fns_d, fns_d) / 2
-        fns_dd = self.grid.derivative(fns_d)
-        return self.grid.integrate(self.fns, -fns_dd) / 2
+        alpha_sums = np.add.outer(self.alphas, self.alphas)
+        alpha_prods = np.outer(self.alphas, self.alphas)
+        return np.sqrt(72) * alpha_prods**1.75 / alpha_sums**2.5
 
     @property
     @memoize
     def kin_ang(self):
         """Return the angular kinetic energy operator for l=1."""
-        return self.grid.integrate(self.fns, self.fns, self.grid.points**-2)
+        alpha_sums = np.add.outer(self.alphas, self.alphas)
+        alpha_prods = np.outer(self.alphas, self.alphas)
+        return np.sqrt(32) * (alpha_prods)**0.75 / np.sqrt(alpha_sums)
 
     @property
     @memoize
     def ext(self):
         """Return the operator for the interaction with the external field, i.e. a proton."""
-        return self.grid.integrate(self.fns, self.fns, -self.grid.points**-1)
+        alpha_sums = np.add.outer(self.alphas, self.alphas)
+        alpha_prods = np.outer(self.alphas, self.alphas)
+        return -np.sqrt(32 / np.pi) / alpha_sums * alpha_prods**0.75
 
     def pot(self, pot):
         """Return the operator for the interaction with a potential on a grid."""

@@ -108,10 +108,10 @@ def test_hydrogenic_op(z, l, grid_basis):
         norm = np.einsum('i,ij,j', evecs[:, i], basis.olp, evecs[:, i])
         ekin = np.einsum('i,ij,j', evecs[:, i], kin, evecs[:, i])
         eext = np.einsum('i,ij,j', evecs[:, i], ext, evecs[:, i])
-        assert_allclose(norm, 1, atol=1e-10, rtol=0, err_msg=case)
+        assert_allclose(norm, 1, atol=0, rtol=1e-8, err_msg=case)
         assert_allclose(eext, -factor, atol=0, rtol=1e-5, err_msg=case)
         assert_allclose(ekin, factor / 2, atol=0, rtol=1e-5, err_msg=case)
-        assert_allclose(evals[i], -factor / 2, atol=0, rtol=1e-5, err_msg=case)
+        assert_allclose(evals[i], -factor / 2, atol=0, rtol=1e-6, err_msg=case)
 
 
 def test_integral_regression(num_regression):
@@ -121,6 +121,7 @@ def test_integral_regression(num_regression):
     assert basis.kin_rad.shape == (5, 5)
     assert basis.kin_ang.shape == (5, 5)
     assert basis.ext.shape == (5, 5)
+    assert_allclose(np.diag(basis.olp) - 1, 0.0, atol=1e-15, rtol=0)
     num_regression.check(
         {'olp': basis.olp.ravel(),
          'kin_rad': basis.kin_rad.ravel(),

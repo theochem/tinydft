@@ -13,10 +13,11 @@ The code is designed with the following criteria in mind:
   algorithmic differentiation, used to computed the analytic
   exchange(-correlation) potential and the grid transformation.
 
-- The numerical integration and differentiation algorithms should be accurate
-  enough to at least 5 significant digits in the total energy, but in many cases
-  the numerical accuracy is better. (The pseudo-spectral method with Legendre
-  polynomials is used.)
+- The numerical integration and differentiation algorithms should be precise
+  enough to at least 6 significant digits for the total energy, but in many
+  cases the numerical precision is better. (Some integrals over Gaussian basis
+  functions are computed analytically. The pseudo-spectral method with Legendre
+  polynomials is used for the Poisson solver.)
 
 - The total number of lines should be minimal and the source-code should be easy
   to understand, provided some background in DFT and spectral methods.

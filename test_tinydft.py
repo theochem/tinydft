@@ -73,7 +73,7 @@ def test_klechkowski():
                                 '6s2 4f14 5d10 6p6 7s2 5f14 6d10 7p6')
 
 
-@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
+@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121])
 def test_atom(z, num_regression, grid_basis):
     econf = klechkowski(z)
     occups = interpret_econf(econf)
@@ -81,5 +81,5 @@ def test_atom(z, num_regression, grid_basis):
     energies, rho = scf_atom(z, occups, grid, basis, nscf=100)
     num_regression.check(
         {'energies': energies},
-        default_tolerance={'rtol': 1e-8, 'atol': 0},
+        default_tolerance={'rtol': 1e-100, 'atol': 0},
     )
