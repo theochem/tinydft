@@ -7,3 +7,4 @@ activate-tinydft-dev-python-3.7.sh
 coverage*.xml
 .coverage*
 matplotlibrc
+prof

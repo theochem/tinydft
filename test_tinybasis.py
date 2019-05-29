@@ -68,8 +68,8 @@ def get_hydrogenic_solutions(grid, z, l):
 
 @pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
 @pytest.mark.parametrize("l", [0, 1, 2, 3, 4, 5, 6])
-def test_hydrogenic_grid(z, l):
-    grid = setup_grid()
+def test_hydrogenic_grid(z, l, grid_basis):
+    grid, basis = grid_basis
     psis = get_hydrogenic_solutions(grid, z, l)
     if l > 0:
         v_angkin = l * (l + 1) / (2 * grid.points**2)
