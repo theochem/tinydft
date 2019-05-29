@@ -22,11 +22,9 @@ from __future__ import print_function, division  # Py 2.7 compatibility
 
 import numpy as np
 from numpy.testing import assert_allclose
-from scipy.linalg import eigh
-from scipy.special import eval_genlaguerre
 import pytest
 
-from tinydft import *
+from tinydft import scf_atom, setup_grid, solve_poisson, char2l, klechkowski, interpret_econf
 
 
 def test_char2l():
@@ -36,83 +34,6 @@ def test_char2l():
     assert char2l('P') == 1
     assert char2l('d') == 2
     assert char2l('D') == 2
-
-
-def get_hydrogenic_solutions(grid, z, l):
-    psis = []
-    for i in range(7 - l):
-        n = i + 1 + l
-        factor = z**2 / n**2
-
-        # Compute the orbital analytically
-        fac = np.math.factorial
-        normalization = np.sqrt(
-            (2 * z / n)**3 * fac(n - l - 1) / (2 * n * fac(n + l)))
-        rho = grid.points * 2 * z / n
-        poly = eval_genlaguerre(n - l - 1, 2 * l + 1, rho)
-        psi = normalization * np.exp(-rho / 2) * rho**l * poly * grid.points
-        psis.append((n, factor, psi))
-    return psis
-
-
-@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
-@pytest.mark.parametrize("l", [0, 1, 2, 3, 4, 5, 6])
-def test_hydrogenic_grid(z, l):
-    grid = setup_grid()
-    psis = get_hydrogenic_solutions(grid, z, l)
-    if l > 0:
-        v_angkin = l * (l + 1) / (2 * grid.points**2)
-    v_ext = -z / grid.points
-    for i, (n, factor, psi) in enumerate(psis):
-        case = "i={} n={}".format(i, n)
-
-        # Check the observables for the analytic solution on the grid.
-        norm = grid.integrate(psi**2)
-        ekin = grid.integrate(-psi * grid.derivative(grid.derivative(psi)) / 2)
-        if l > 0:
-            ekin += grid.integrate(psi**2 * v_angkin)
-        ena = grid.integrate(psi**2 * v_ext)
-        assert_allclose(norm, 1, atol=1e-14, rtol=0, err_msg=case)
-        # atol is set to micro-Hartree precision
-        assert_allclose(ekin, factor / 2, atol=4e-11, rtol=0, err_msg=case)
-        assert_allclose(ena, -factor, atol=4e-11, rtol=0, err_msg=case)
-
-
-@pytest.fixture(scope="module")
-def hydrogenic_ops():
-    """Operators for the hydrogenic atom, computed only once for all tests."""
-    grid = setup_grid()
-    obasis = setup_obasis(grid)
-    olp = grid.integrate(obasis, obasis)
-    kin_rad = grid.integrate(obasis, -grid.derivative(grid.derivative(obasis))) / 2
-    kin_ang = grid.integrate(obasis, obasis, grid.points**-2)
-    na = grid.integrate(obasis, obasis, -grid.points**-1)
-    return grid, obasis, olp, kin_rad, kin_ang, na
-
-
-@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
-@pytest.mark.parametrize("l", [0, 1, 2, 3, 4, 5, 6])
-def test_hydrogenic_op(z, l, hydrogenic_ops):
-    grid, obasis, olp, kin_rad, kin_ang, na = hydrogenic_ops
-    # Created modified copies of the operators. Do not modificy in place to
-    # avoid side-effects.
-    kin = kin_rad.copy()
-    if l > 0:
-        angmom_factor = (l * (l + 1)) / 2
-        kin += kin_ang * angmom_factor
-    na = na * z
-    evals, evecs = eigh(kin + na, olp)
-    psis = get_hydrogenic_solutions(grid, z, l)
-    for i, (n, factor, psi) in enumerate(psis):
-        case = "i={} n={}".format(i, n)
-        # Same test for the numerical solution
-        norm = np.einsum('i,ij,j', evecs[:, i], olp, evecs[:, i])
-        ekin = np.einsum('i,ij,j', evecs[:, i], kin, evecs[:, i])
-        ena = np.einsum('i,ij,j', evecs[:, i], na, evecs[:, i])
-        assert_allclose(norm, 1, atol=1e-10, rtol=0, err_msg=case)
-        assert_allclose(ena, -factor, atol=0, rtol=1e-5, err_msg=case)
-        assert_allclose(ekin, factor / 2, atol=0, rtol=1e-5, err_msg=case)
-        assert_allclose(evals[i], -factor / 2, atol=0, rtol=1e-5, err_msg=case)
 
 
 @pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
@@ -153,12 +74,11 @@ def test_klechkowski():
 
 
 @pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
-def test_atom(z, num_regression, hydrogenic_ops):
+def test_atom(z, num_regression, grid_basis):
     econf = klechkowski(z)
     occups = interpret_econf(econf)
-    grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext = hydrogenic_ops
-    energies, rho = scf_atom(occups, grid, obasis, overlap, op_kin_rad,
-                             op_kin_ang, op_ext * z, nscf=100)
+    grid, basis = grid_basis
+    energies, rho = scf_atom(z, occups, grid, basis, nscf=100)
     num_regression.check(
         {'energies': energies},
         default_tolerance={'rtol': 1e-8, 'atol': 0},

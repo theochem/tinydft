@@ -33,6 +33,7 @@ from numpy.testing import assert_allclose
 from scipy.linalg import eigh
 import matplotlib.pyplot as plt
 
+from tinybasis import Basis
 from tinygrid import TransformedGrid
 
 
@@ -40,8 +41,8 @@ from tinygrid import TransformedGrid
 
 
 __all__ = [
-    'main', 'scf_atom', 'setup_grid', 'setup_obasis', 'solve_poisson',
-    'xcfunctional', 'char2l', 'interpret_econf', 'klechkowski']
+    'main', 'scf_atom', 'setup_grid', 'solve_poisson', 'xcfunctional', 'char2l',
+    'interpret_econf', 'klechkowski']
 
 
 def main(z, q):
@@ -61,23 +62,14 @@ def main(z, q):
     print("Electronic configuration          {:s}".format(str(econf)))
 
     grid = setup_grid()
-    obasis = setup_obasis(grid)
+    basis = Basis(grid)
     # Compute the overlap matrix.
-    overlap = grid.integrate(obasis, obasis)
-    evals_olp = np.linalg.eigvalsh(overlap)
+    evals_olp = np.linalg.eigvalsh(basis.olp)
     print("Number of radial grid points      {:8d}".format(len(grid.points)))
-    print("Number of basis functions         {:8d}".format(obasis.shape[0]))
+    print("Number of basis functions         {:8d}".format(basis.nbasis))
     print("Condition number of the overlap   {:8.1e}".format(evals_olp[-1] / evals_olp[0]))
 
-    # Radial kinetic energy.
-    op_kin_rad = grid.integrate(obasis, -grid.derivative(grid.derivative(obasis))) / 2
-    # op_kin_rad = grid.integrate(grid.derivative(obasis), grid.derivative(obasis)) / 2
-    # Interaction with the nuclear potential.
-    op_ext = grid.integrate(obasis, obasis, -grid.points**-1)
-    # angular kinetic energy operator for l=1.
-    op_kin_ang = grid.integrate(obasis, obasis, grid.points**-2)
-
-    energies, rho = scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext * z)
+    energies, rho = scf_atom(z, occups, grid, basis)
 
     plt.clf()
     plt.title("Z={:d} Energy={:.5f}".format(z, energies[0]))
@@ -89,25 +81,19 @@ def main(z, q):
     plt.savefig("rho_z{:03d}_{}.png".format(z, '_'.join(econf.split())))
 
 
-def scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext, nscf=25, mixing=0.5):
+def scf_atom(z, occups, grid, basis, nscf=25, mixing=0.5):
     """Perform a self-consistent field atomic calculation.
 
     Parameters
     ----------
+    z
+        The nuclear charge.
     occups
         Occupation numbers, see interpret_econf.
     grid
         A radial grid.
-    obasis
+    basis
         The radial orbital basis.
-    overlap
-        The overlap operator.
-    op_kin_rad
-        The radial kinetic energy operator.
-    op_kin_ang
-        The angular kinetic energy operator for l=1.
-    op_ext
-        The external potential operator.
     nscf
         The number of SCF cycles.
     mixing
@@ -134,7 +120,7 @@ def scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext, nscf
     print("Mixing parameter                  {:8.3f}".format(mixing))
     print()
 
-    op_core_s = op_kin_rad + op_ext
+    op_core_s = basis.kin_rad + z * basis.ext
     vol = 4 * np.pi * grid.points**2
 
     def excfunction(rho, np):
@@ -161,8 +147,7 @@ def scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext, nscf
             # Compute the total density.
             rho = 0.0
             for l in range(maxl + 1):
-                norb = len(occups[l])
-                orbs_grid_u = np.dot(eps_orbs_u[l][1].T, obasis)
+                orbs_grid_u = np.dot(eps_orbs_u[l][1].T, basis.fns)
                 orbs_grid_r = orbs_grid_u / grid.points / np.sqrt(4 * np.pi)
                 rho += np.dot(occups[l], orbs_grid_r**2)
             # Check the total number of electrons.
@@ -185,13 +170,13 @@ def scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext, nscf
         energy_kin_rad = 0.0
         energy_kin_ang = 0.0
         # Hartree and XC potential are the same for all angular momenta.
-        op_jxc = grid.integrate(obasis, obasis, vhartree + vxc)
+        op_jxc = basis.pot(vhartree + vxc)
         for l in range(maxl + 1):
             # The new fock matrix.
             op_fock = op_core_s + op_jxc
             if l > 0:
                 angmom_factor = (l * (l + 1)) / 2
-                op_fock += op_kin_ang * angmom_factor
+                op_fock += basis.kin_ang * angmom_factor
             # Mix with the old fock matrix, if available.
             op_fock_old = ops_fock_old.get(l)
             if op_fock_old is None:
@@ -200,13 +185,13 @@ def scf_atom(occups, grid, obasis, overlap, op_kin_rad, op_kin_ang, op_ext, nscf
                 op_fock_mix = mixing * op_fock + (1 - mixing) * op_fock_old
             ops_fock_old[l] = op_fock_mix
             # Solve for the orbitals.
-            evals, evecs = eigh(op_fock_mix, overlap, eigvals=(0, len(occups[l]) - 1))
+            evals, evecs = eigh(op_fock_mix, basis.olp, eigvals=(0, len(occups[l]) - 1))
             eps_orbs_u[l] = evals, evecs
             # Compute the kinetic energy contributions using the orbitals.
-            energy_kin_rad += np.einsum('i,ji,jk,ki', occups[l], evecs, op_kin_rad, evecs)
-            energy_ext += np.einsum('i,ji,jk,ki', occups[l], evecs, op_ext, evecs)
+            energy_kin_rad += np.einsum('i,ji,jk,ki', occups[l], evecs, basis.kin_rad, evecs)
+            energy_ext += z * np.einsum('i,ji,jk,ki', occups[l], evecs, basis.ext, evecs)
             if l > 0:
-                energy_kin_ang += (np.einsum('i,ji,jk,ki', occups[l], evecs, op_kin_ang, evecs)
+                energy_kin_ang += (np.einsum('i,ji,jk,ki', occups[l], evecs, basis.kin_ang, evecs)
                                    * angmom_factor)
 
     # Plot the electron density.
@@ -225,24 +210,6 @@ def setup_grid(npoint=256):
         alpha = np.log(right / left)
         return left * (np.exp(alpha * u) - 1)
     return TransformedGrid(tf, npoint)
-
-
-def setup_obasis(grid, nbasis=96):
-    """Define a radial orbital basis set on a grid, for the U=R/r functions.
-
-    Returns
-    -------
-    obasis
-        Array with orbital basis functions, each row representing one basis
-        function.
-
-    """
-    alphas = 10**np.linspace(-6, 8, nbasis)
-    obasis = np.exp(-np.outer(alphas, grid.points**2)) * grid.points
-    normalizations = np.sqrt((2 * alphas / np.pi)**1.5 * 4 * np.pi)
-    obasis *= normalizations[:, np.newaxis]
-    assert_allclose(np.sqrt(grid.integrate(obasis**2)), 1.0, atol=1e-13, rtol=0)
-    return obasis
 
 
 def solve_poisson(grid, rho):

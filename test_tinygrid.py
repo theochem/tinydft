@@ -26,7 +26,7 @@ from numpy.polynomial.legendre import legval
 import pytest
 from scipy.special import eval_genlaguerre
 
-from tinygrid import *
+from tinygrid import LegendreGrid, TransformedGrid
 
 
 @pytest.mark.parametrize("npoint", range(10, 20))
