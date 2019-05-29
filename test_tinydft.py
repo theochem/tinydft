@@ -81,5 +81,5 @@ def test_atom(z, num_regression, grid_basis):
     energies, rho = scf_atom(z, occups, grid, basis, nscf=100)
     num_regression.check(
         {'energies': energies},
-        default_tolerance={'rtol': 1e-100, 'atol': 0},
+        default_tolerance={'rtol': 1e-9, 'atol': 0},
     )
