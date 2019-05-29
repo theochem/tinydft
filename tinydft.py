@@ -41,24 +41,24 @@ from tinygrid import TransformedGrid
 
 
 __all__ = [
-    'main', 'scf_atom', 'setup_grid', 'solve_poisson', 'xcfunctional', 'char2l',
+    'main', 'scf_atom', 'setup_grid', 'solve_poisson', 'xcfunctional', 'char2angqn',
     'interpret_econf', 'klechkowski']
 
 
-def main(z, q):
+def main(atnum, atcharge):
     """Run an atomic DFT calculation.
 
     Parameters
     ----------
-    z
+    atnum
         Atomic number.
-    q
+    atcharge
         The net charge.
 
     """
-    econf = klechkowski(z - q)
+    econf = klechkowski(atnum - atcharge)
     occups = interpret_econf(econf)
-    print("Nuclear charge                    {:8d}".format(z))
+    print("Nuclear charge                    {:8d}".format(atnum))
     print("Electronic configuration          {:s}".format(str(econf)))
 
     grid = setup_grid()
@@ -69,24 +69,25 @@ def main(z, q):
     print("Number of basis functions         {:8d}".format(basis.nbasis))
     print("Condition number of the overlap   {:8.1e}".format(evals_olp[-1] / evals_olp[0]))
 
-    energies, rho = scf_atom(z, occups, grid, basis)
+    energies, rho = scf_atom(atnum, occups, grid, basis)
 
     plt.clf()
-    plt.title("Z={:d} Energy={:.5f}".format(z, energies[0]))
+    plt.title("Z={:d} Energy={:.5f}".format(atnum, energies[0]))
     plt.semilogy(grid.points, rho)
     plt.xlabel("Distance from nucleus")
     plt.ylabel("Density")
     plt.ylim(1e-4, rho.max() * 2)
     plt.xlim(0, 5)
-    plt.savefig("rho_z{:03d}_{}.png".format(z, '_'.join(econf.split())))
+    plt.savefig("rho_z{:03d}_{}.png".format(atnum, '_'.join(econf.split())))
 
 
-def scf_atom(z, occups, grid, basis, nscf=25, mixing=0.5):
+# pylint: disable=too-many-statements
+def scf_atom(atnum, occups, grid, basis, nscf=25, mixing=0.5):
     """Perform a self-consistent field atomic calculation.
 
     Parameters
     ----------
-    z
+    atnum
         The nuclear charge.
     occups
         Occupation numbers, see interpret_econf.
@@ -107,22 +108,22 @@ def scf_atom(z, occups, grid, basis, nscf=25, mixing=0.5):
         The electron density on the grid points.
 
     """
-    # Dictionary for Fock operators from previous iteration, used for mixing.
-    ops_fock_old = {}
+    # Fock operators from previous iteration, used for mixing.
+    focks_old = []
+    # Volume element in spherical coordinates
+    vol = 4 * np.pi * grid.points**2
 
     nelec = np.concatenate(occups).sum()
-    maxl = len(occups) - 1
+    maxangqn = len(occups) - 1
     print("Occupation numbers per ang. mom.  {:}".format(occups))
     print("Number of electrons               {:8.1f}".format(nelec))
-    print("Maximum ang. mol. quantum number  {:8d}".format(maxl))
+    print("Maximum ang. mol. quantum number  {:8d}".format(maxangqn))
     print()
     print("Number of SCF iterations          {:8d}".format(nscf))
     print("Mixing parameter                  {:8.3f}".format(mixing))
     print()
 
-    op_core_s = basis.kin_rad + z * basis.ext
-    vol = 4 * np.pi * grid.points**2
-
+    # pylint: disable=redefined-outer-name
     def excfunction(rho, np):
         """Compute the exchange(-correlation) energy density."""
         clda = (3 / 4) * (3.0 / np.pi)**(1 / 3)
@@ -146,10 +147,10 @@ def scf_atom(z, occups, grid, basis, nscf=25, mixing=0.5):
         else:
             # Compute the total density.
             rho = 0.0
-            for l in range(maxl + 1):
-                orbs_grid_u = np.dot(eps_orbs_u[l][1].T, basis.fns)
+            for angqn in range(maxangqn + 1):
+                orbs_grid_u = np.dot(eps_orbs_u[angqn][1].T, basis.fnvals)
                 orbs_grid_r = orbs_grid_u / grid.points / np.sqrt(4 * np.pi)
-                rho += np.dot(occups[l], orbs_grid_r**2)
+                rho += np.dot(occups[angqn], orbs_grid_r**2)
             # Check the total number of electrons.
             assert_allclose(grid.integrate(rho * vol), nelec, atol=1e-10, rtol=0)
             # Solve the Poisson problem for the new density.
@@ -170,31 +171,33 @@ def scf_atom(z, occups, grid, basis, nscf=25, mixing=0.5):
         energy_kin_rad = 0.0
         energy_kin_ang = 0.0
         # Hartree and XC potential are the same for all angular momenta.
-        op_jxc = basis.pot(vhartree + vxc)
-        for l in range(maxl + 1):
+        jxc = basis.pot(vhartree + vxc)
+        for angqn in range(maxangqn + 1):
             # The new fock matrix.
-            op_fock = op_core_s + op_jxc
-            if l > 0:
-                angmom_factor = (l * (l + 1)) / 2
-                op_fock += basis.kin_ang * angmom_factor
+            fock = basis.kin_rad + atnum * basis.ext + jxc
+            if angqn > 0:
+                angmom_factor = (angqn * (angqn + 1)) / 2
+                fock += basis.kin_ang * angmom_factor
             # Mix with the old fock matrix, if available.
-            op_fock_old = ops_fock_old.get(l)
-            if op_fock_old is None:
-                op_fock_mix = op_fock
+            if iscf == 0:
+                fock_mix = fock
+                focks_old.append(fock)
             else:
-                op_fock_mix = mixing * op_fock + (1 - mixing) * op_fock_old
-            ops_fock_old[l] = op_fock_mix
+                fock_mix = mixing * fock + (1 - mixing) * focks_old[angqn]
+                focks_old[angqn] = fock_mix
             # Solve for the orbitals.
-            evals, evecs = eigh(op_fock_mix, basis.olp, eigvals=(0, len(occups[l]) - 1))
-            eps_orbs_u[l] = evals, evecs
+            evals, evecs = eigh(fock_mix, basis.olp, eigvals=(0, len(occups[angqn]) - 1))
+            eps_orbs_u[angqn] = evals, evecs
             # Compute the kinetic energy contributions using the orbitals.
-            energy_kin_rad += np.einsum('i,ji,jk,ki', occups[l], evecs, basis.kin_rad, evecs)
-            energy_ext += z * np.einsum('i,ji,jk,ki', occups[l], evecs, basis.ext, evecs)
-            if l > 0:
-                energy_kin_ang += (np.einsum('i,ji,jk,ki', occups[l], evecs, basis.kin_ang, evecs)
-                                   * angmom_factor)
+            energy_kin_rad += np.einsum(
+                'i,ji,jk,ki', occups[angqn], evecs, basis.kin_rad, evecs)
+            energy_ext += atnum * np.einsum(
+                'i,ji,jk,ki', occups[angqn], evecs, basis.ext, evecs)
+            if angqn > 0:
+                energy_kin_ang += np.einsum(
+                    'i,ji,jk,ki',
+                    occups[angqn], evecs, basis.kin_ang, evecs) * angmom_factor
 
-    # Plot the electron density.
     energies = np.array([energy, energy_kin_rad, energy_kin_ang, energy_hartree,
                          energy_xc, energy_ext])
     return energies, rho
@@ -202,14 +205,14 @@ def scf_atom(z, occups, grid, basis, nscf=25, mixing=0.5):
 
 def setup_grid(npoint=256):
     """Create a suitable grid for integration and differentiation."""
-    def tf(t, np):
+    # pylint: disable=redefined-outer-name
+    def transform(x, np):
         """Transform from [-1, 1] to [0, big_radius]."""
-        u = (1 + t) / 2
         left = 1e-3
         right = 1e4
         alpha = np.log(right / left)
-        return left * (np.exp(alpha * u) - 1)
-    return TransformedGrid(tf, npoint)
+        return left * (np.exp(alpha * (1 + x) / 2) - 1)
+    return TransformedGrid(transform, npoint)
 
 
 def solve_poisson(grid, rho):
@@ -229,16 +232,17 @@ def solve_poisson(grid, rho):
 def xcfunctional(rho, excfunction):
     """Compute the exchange-(correlation) energy density and potential."""
     from autograd import elementwise_grad
-    import autograd.numpy as np
+    import autograd.numpy as agnp
     exc = excfunction(rho, np)
-    vxc = elementwise_grad(excfunction)(rho, np)
+    # pylint: disable=no-value-for-parameter
+    vxc = elementwise_grad(excfunction)(rho, agnp)
     return exc, vxc
 
 
 ANGMOM_CHARACTERS = 'spdfghiklmnoqrtuvwxyzabce'
 
 
-def char2l(char):
+def char2angqn(char):
     """Return the angular momentum quantum number corresponding to a character."""
     return ANGMOM_CHARACTERS.index(char.lower())
 
@@ -256,7 +260,7 @@ def interpret_econf(econf):
     -------
     occups
         A list of lists, one per angular momentum, with the electron occupation
-        for each orbitals. The maximum occupation is 2 * (2 * l + 1).
+        for each orbitals. The maximum occupation is 2 * (2 * angqn + 1).
 
     """
     occups = []
@@ -265,32 +269,32 @@ def interpret_econf(econf):
         if occup <= 0:
             raise TypeError("Occuptions in the electronic configuration must "
                             "be strictly positive.")
-        n = int(key[0])
-        l = char2l(key[1])
-        while len(occups) < l + 1:
+        priqn = int(key[0])
+        angqn = char2angqn(key[1])
+        while len(occups) < angqn + 1:
             occups.append([])
-        i = n - l - 1
-        while len(occups[l]) < i + 1:
-            occups[l].append([])
-        occups[l][i] = occup
+        i = priqn - angqn - 1
+        while len(occups[angqn]) < i + 1:
+            occups[angqn].append([])
+        occups[angqn][i] = occup
     return occups
 
 
 def klechkowski(nelec):
     """Return the atomic electron configuration by following the Klechkowski rule."""
-    n_plus_l = 1
+    priqn_plus_angqn = 1
     words = []
     while nelec > 0:
-        # start with highest possible l for given n+l
-        l = (n_plus_l - 1) // 2
-        n = n_plus_l - l
-        while nelec > 0 and l >= 0:
-            nelec_orb = min(nelec, 2 * (2 * l + 1))
+        # start with highest possible angqn for given priqn+angqn
+        angqn = (priqn_plus_angqn - 1) // 2
+        priqn = priqn_plus_angqn - angqn
+        while nelec > 0 and angqn >= 0:
+            nelec_orb = min(nelec, 2 * (2 * angqn + 1))
             nelec -= nelec_orb
-            words.append("{}{}{}".format(n, ANGMOM_CHARACTERS[l], nelec_orb))
-            l -= 1
-            n += 1
-        n_plus_l += 1
+            words.append("{}{}{}".format(priqn, ANGMOM_CHARACTERS[angqn], nelec_orb))
+            angqn -= 1
+            priqn += 1
+        priqn_plus_angqn += 1
     return " ".join(words)
 
 

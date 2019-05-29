@@ -55,7 +55,7 @@ class Basis:
         The radial numerical integration grid.
     alphas
         Gaussian exponents.
-    fns
+    fnvals
         Normalized basis functions evaluated on the grid.
     normalizations
         Vector with normalization constants for the Gaussians.
@@ -64,7 +64,7 @@ class Basis:
     kin_rad
         Radial kinetic energy operator.
     kin_ang
-        Angular kinetic energy operator for l=1.
+        Angular kinetic energy operator for angqn=1.
     ext
         Operator for the interaction with a proton, i.e. the external field.
 
@@ -87,15 +87,15 @@ class Basis:
         """
         self.grid = grid
         self.alphas = 10**np.linspace(np.log10(alphamin), np.log10(alphamax), nbasis)
-        self.fns = np.exp(-np.outer(self.alphas, grid.points**2)) * grid.points
+        self.fnvals = np.exp(-np.outer(self.alphas, grid.points**2)) * grid.points
         self.normalizations = np.sqrt(np.sqrt(self.alphas))**3 * np.sqrt(np.sqrt(2 / np.pi) * 8)
-        self.fns *= self.normalizations[:, np.newaxis]
-        assert_allclose(np.sqrt(grid.integrate(self.fns**2)), 1.0, atol=7e-14, rtol=0)
+        self.fnvals *= self.normalizations[:, np.newaxis]
+        assert_allclose(np.sqrt(grid.integrate(self.fnvals**2)), 1.0, atol=7e-14, rtol=0)
 
     @property
     def nbasis(self):
         """Return the number of basis functions."""
-        return self.fns.shape[0]
+        return self.fnvals.shape[0]
 
     @property
     @memoize
@@ -116,7 +116,7 @@ class Basis:
     @property
     @memoize
     def kin_ang(self):
-        """Return the angular kinetic energy operator for l=1."""
+        """Return the angular kinetic energy operator for angqn=1."""
         alpha_sums = np.add.outer(self.alphas, self.alphas)
         alpha_prods = np.outer(self.alphas, self.alphas)
         return np.sqrt(32) * (alpha_prods)**0.75 / np.sqrt(alpha_sums)
@@ -131,4 +131,4 @@ class Basis:
 
     def pot(self, pot):
         """Return the operator for the interaction with a potential on a grid."""
-        return self.grid.integrate(self.fns, self.fns, pot)
+        return self.grid.integrate(self.fnvals, self.fnvals, pot)

@@ -5,6 +5,7 @@ linters:
       config: .pycodestylerc
       line-range: [79, 100]
   - pydocstyle:
+  - pylint:
   - whitespace:
       filefilter: ['+ *.py', '+ *.rst']
   - header:

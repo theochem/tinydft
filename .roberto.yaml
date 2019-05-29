@@ -5,6 +5,7 @@ project:
     - dist_name: tinydft
       tools:
         - cardboardlint-static
+        - cardboardlint-dynamic
         - upload-codecov
         - pytest
         - test-main

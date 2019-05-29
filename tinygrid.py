@@ -34,13 +34,13 @@ class BaseGrid:
         self.points = points
         self.weights = weights
 
-    def integrate(self, *multivalues):
+    def integrate(self, *multi_fnvals):
         """Compute the definite integrals (of products) of functions.
 
         Parameters
         ----------
-        values1, values2, ...
-            Each argument is an n-dimensional array of function values, where
+        fnvals1, fnvals2, ...
+            Each argument is an N-dimensional array of function values, where
             the last index corresponds to the grid points. The arrays are
             contracted over their last index and the resulting functions are
             all integrated. This allows many products of functions to be
@@ -50,15 +50,15 @@ class BaseGrid:
         -------
         integrals
             All integrals of products of functions. The shape is
-            ``sum(values.shape[:-1] for values in multivalues)``.
+            ``sum(fnvals.shape[:-1] for fnvals in multi_fnvals)``.
 
         """
         args = [self.weights, [0]]
         sublistout = []
         counter = 1
-        for values in multivalues:
-            args.append(values)
-            nkeep = values.ndim - 1
+        for fnvals in multi_fnvals:
+            args.append(fnvals)
+            nkeep = fnvals.ndim - 1
             sublist = list(range(counter, counter + nkeep)) + [0]
             sublistout += sublist[:-1]
             args.append(sublist)
@@ -73,7 +73,7 @@ class LegendreGrid(BaseGrid):
     The derivative and antiderivative are implemented with the spectral method.
 
     All methods in this class are designed to vectorize operations. Each method
-    argument can be an n-dimensional array, of which the last index corresponds
+    argument can be an N-dimensional array, of which the last index corresponds
     to grid points or Legendre polynomials. The functions vectorize over the
     preceding indices.
     """
@@ -84,28 +84,29 @@ class LegendreGrid(BaseGrid):
         # Basis functions are used to transform from grid data to Legendre
         # coefficients and back.
         self.basis = legvander(self.points, npoint - 1)
+        # pylint: disable=invalid-name
         U, S, Vt = np.linalg.svd(self.basis)
         self.basis_inv = np.einsum('ji,j,kj->ik', Vt, 1 / S, U)
 
-    def _tocoeffs(self, values):
+    def tocoeffs(self, fnvals):
         """Convert function values on a grid to Legendre coefficients."""
-        return np.dot(values, self.basis_inv.T)
+        return np.dot(fnvals, self.basis_inv.T)
 
-    def _tovalues(self, coeffs):
+    def tofnvals(self, coeffs):
         """Convert Legendre coefficients to function values on a grid."""
         return np.dot(coeffs, self.basis.T[:coeffs.shape[-1]])
 
-    def antiderivative(self, values):
+    def antiderivative(self, fnvals):
         """Return the antiderivative."""
-        coeffs = self._tocoeffs(values)
+        coeffs = self.tocoeffs(fnvals)
         coeffs_int = legint(coeffs, axis=-1)
-        return self._tovalues(coeffs_int[..., :-1])
+        return self.tofnvals(coeffs_int[..., :-1])
 
-    def derivative(self, values):
+    def derivative(self, fnvals):
         """Return the derivative."""
-        coeffs = self._tocoeffs(values)
+        coeffs = self.tocoeffs(fnvals)
         coeffs_der = legder(coeffs, axis=-1)
-        return self._tovalues(coeffs_der)
+        return self.tofnvals(coeffs_der)
 
 
 class TransformedGrid(BaseGrid):
@@ -129,17 +130,19 @@ class TransformedGrid(BaseGrid):
 
         """
         from autograd import elementwise_grad
-        import autograd.numpy as np
+        import autograd.numpy as agnp
         self.legendre_grid = LegendreGrid(npoint)
         points = transform(self.legendre_grid.points, np)
-        self.derivs = abs(elementwise_grad(transform)(self.legendre_grid.points, np))
+        # Compute the Jacobian of the grid transformation and update weights.
+        # pylint: disable=no-value-for-parameter
+        self.derivs = abs(elementwise_grad(transform)(self.legendre_grid.points, agnp))
         weights = self.legendre_grid.weights * self.derivs
         BaseGrid.__init__(self, points, weights)
 
-    def antiderivative(self, fn):
+    def antiderivative(self, fnvals):
         """Return the antiderivative."""
-        return self.legendre_grid.antiderivative(fn * self.derivs)
+        return self.legendre_grid.antiderivative(fnvals * self.derivs)
 
-    def derivative(self, fn):
+    def derivative(self, fnvals):
         """Return the derivative."""
-        return self.legendre_grid.derivative(fn) / self.derivs
+        return self.legendre_grid.derivative(fnvals) / self.derivs

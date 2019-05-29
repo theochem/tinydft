@@ -24,23 +24,23 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 
-from tinydft import scf_atom, setup_grid, solve_poisson, char2l, klechkowski, interpret_econf
+from tinydft import scf_atom, setup_grid, solve_poisson, char2angqn, klechkowski, interpret_econf
 
 
-def test_char2l():
-    assert char2l('s') == 0
-    assert char2l('S') == 0
-    assert char2l('p') == 1
-    assert char2l('P') == 1
-    assert char2l('d') == 2
-    assert char2l('D') == 2
+def test_char2angqn():
+    assert char2angqn('s') == 0
+    assert char2angqn('S') == 0
+    assert char2angqn('p') == 1
+    assert char2angqn('P') == 1
+    assert char2angqn('d') == 2
+    assert char2angqn('D') == 2
 
 
-@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
-def test_poisson(z):
+@pytest.mark.parametrize("atnum", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
+def test_poisson(atnum):
     # Numerically solve the electrostatic potential of an S-type Slater Density
     grid = setup_grid()
-    alpha = 2 * z
+    alpha = 2 * atnum
     aux = np.exp(-alpha * grid.points)
     rho = aux * alpha**3 / (8 * np.pi)
     assert_allclose(grid.integrate(4 * np.pi * grid.points**2 * rho), 1.0, atol=1e-11, rtol=0)
@@ -73,12 +73,14 @@ def test_klechkowski():
                                 '6s2 4f14 5d10 6p6 7s2 5f14 6d10 7p6')
 
 
-@pytest.mark.parametrize("z", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121])
-def test_atom(z, num_regression, grid_basis):
-    econf = klechkowski(z)
+@pytest.mark.parametrize("atnum", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121])
+def test_atom(atnum, num_regression, grid_basis):
+    econf = klechkowski(atnum)
     occups = interpret_econf(econf)
     grid, basis = grid_basis
-    energies, rho = scf_atom(z, occups, grid, basis, nscf=100)
+    energies, rho = scf_atom(atnum, occups, grid, basis, nscf=100)
+    nelec = grid.integrate(4 * np.pi * grid.points**2 * rho)
+    assert_allclose(nelec, atnum, atol=1e-8, rtol=0)
     num_regression.check(
         {'energies': energies},
         default_tolerance={'rtol': 1e-9, 'atol': 0},

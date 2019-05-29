@@ -154,6 +154,48 @@ In order of increasing difficulty:
 11) Extend the program to support (meta) generalized gradient functionals.
 
 
+Dictionary of variable names
+============================
+
+The variable names are not always the shortest possible, e.g. ``atnum`` instead
+of ``z``, to make them more self-explaining and to comply with good practices.
+
+- ``alphas``: Gaussian exponents in basis functions
+- ``atcharge``: Atomic charge
+- ``atnum``: Atomic number
+- ``angqn``: Angular momentum (or azimuthal) quantum number
+- ``coeffs``: Expansion coefficients of a function in Gaussian primitives or
+  Legendre polynomials.
+- ``econf``: Electronic configuration
+- ``energy_hartree``: Hartree energy, i.e. classical electron-electron repulsion.
+- ``eps``: Orbital energies
+- ``energy_xc``: Exchange-correlation energy
+- ``exc``: Exchange-correlation energy density
+- ``evals``: Eigenvalues
+- ``evecs``: Eigenvectors
+- ``ext``: Integrals for interaction with the external field (proton)
+- ``fnvals``: Function values on grid points
+- ``fock``: Fock operator
+- ``iscf``: Current SCF iteration
+- ``jxc``: Hartree-Exchange-Correlation operator
+- ``kin_rad``: Radial kinetic energy integrals
+- ``kin_ang``: Angular kinetic energy integrals
+- ``maxangqn``: Maximum angular quantum number of the occupied orbitals
+- ``nbasis``: Number of basis functions
+- ``nelec``: Number of electrons
+- ``nscf``: Number of SCF iterations
+- ``occups``: Occupation numbers
+- ``olp``: Overlap integrals
+- ``orb_u``: Orbital divided by r: U = R/r
+- ``orb_r``: Orbital: R = U*r
+- ``priqn``: Primary quantum numbers
+- ``rho``: Electron density on grid points
+- ``vhartree``: Hartree potential, i.e. minus classical electrostatic potential
+  due to the electrons.
+- ``vol``: Volume element in spherical coordinates
+- ``vxc``: Exchange-correlation potential
+
+
 .. _numpy: https://www.numpy.org/
 
 .. _scipy: https://www.scipy.org/

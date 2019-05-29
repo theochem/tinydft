@@ -35,8 +35,8 @@ def test_low_grid_basics(npoint):
     assert grid.basis.shape == (npoint, npoint)
     assert grid.basis_inv.shape == (npoint, npoint)
     fn1 = np.random.uniform(0, 1, npoint)
-    coeffs = grid._tocoeffs(fn1)
-    fn2 = grid._tovalues(coeffs)
+    coeffs = grid.tocoeffs(fn1)
+    fn2 = grid.tofnvals(coeffs)
     assert_allclose(fn1, fn2, atol=1e-14)
     fn3 = legval(grid.points, coeffs)
     assert_allclose(fn1, fn3, atol=1e-14)
@@ -48,9 +48,9 @@ def test_low_grid_basics_vectorized():
     extshape = shape + (npoint, )
     grid = LegendreGrid(npoint)
     fn1 = np.random.uniform(0, 1, extshape)
-    coeffs = grid._tocoeffs(fn1)
+    coeffs = grid.tocoeffs(fn1)
     assert coeffs.shape == extshape
-    fn2 = grid._tovalues(coeffs)
+    fn2 = grid.tofnvals(coeffs)
     assert fn2.shape == extshape
     assert_allclose(fn1, fn2, atol=1e-14)
     # For legval, the first index of the coefficients array should be for
@@ -65,131 +65,163 @@ def test_low_grid_sin():
     npoint = 101
     grid = LegendreGrid(npoint)
     assert_allclose(grid.points[npoint // 2], 0.0, atol=1e-10)
-    fn = np.cos(grid.points)
-    fna = grid.antiderivative(fn)
-    fna -= fna[npoint // 2]
-    fnd = grid.derivative(fn)
-    assert_allclose(grid.integrate(fn), np.sin(1) - np.sin(-1), atol=1e-14, rtol=0)
-    assert_allclose(fna, np.sin(grid.points), atol=1e-14, rtol=0)
-    assert_allclose(fnd, -np.sin(grid.points), atol=1e-10, rtol=0)
+    fnvals = np.cos(grid.points)
+    fnvalsa = grid.antiderivative(fnvals)
+    fnvalsa -= fnvalsa[npoint // 2]
+    fnvalsd = grid.derivative(fnvals)
+    assert_allclose(grid.integrate(fnvals), np.sin(1) - np.sin(-1), atol=1e-14, rtol=0)
+    assert_allclose(fnvalsa, np.sin(grid.points), atol=1e-14, rtol=0)
+    assert_allclose(fnvalsd, -np.sin(grid.points), atol=1e-10, rtol=0)
 
 
 def test_low_grid_sin_vectorized():
     npoint = 101
     grid = LegendreGrid(npoint)
     assert_allclose(grid.points[npoint // 2], 0.0, atol=1e-10)
-    fns = np.cos(np.outer([1.0, 0.5, 0.2], grid.points))
-    fnsa = grid.antiderivative(fns)
-    fnsa -= fnsa[:, npoint // 2, np.newaxis]
-    fnsd = grid.derivative(fns)
+    fnsvals = np.cos(np.outer([1.0, 0.5, 0.2], grid.points))
+    fnsvalsa = grid.antiderivative(fnsvals)
+    fnsvalsa -= fnsvalsa[:, npoint // 2, np.newaxis]
+    fnsvalsd = grid.derivative(fnsvals)
     integrals = [
         np.sin(1) - np.sin(-1),
         2 * np.sin(0.5) - 2 * np.sin(-0.5),
         5 * np.sin(0.2) - 5 * np.sin(-0.2),
     ]
-    assert_allclose(grid.integrate(fns), integrals, atol=1e-14, rtol=0)
+    assert_allclose(grid.integrate(fnsvals), integrals, atol=1e-14, rtol=0)
     antiderivatives = [
         np.sin(grid.points),
         2 * np.sin(0.5 * grid.points),
         5 * np.sin(0.2 * grid.points),
     ]
-    assert_allclose(fnsa, antiderivatives, atol=1e-14, rtol=0)
+    assert_allclose(fnsvalsa, antiderivatives, atol=1e-14, rtol=0)
     derivatives = [
         -np.sin(grid.points),
         -0.5 * np.sin(0.5 * grid.points),
         -0.2 * np.sin(0.2 * grid.points),
     ]
-    assert_allclose(fnsd, derivatives, atol=1e-10, rtol=0)
+    assert_allclose(fnsvalsd, derivatives, atol=1e-10, rtol=0)
     fns_other = np.cos(np.outer([1.1, 1.2, 0.8], grid.points))
     integrals2 = np.array([
         [grid.integrate(fn1 * fn2) for fn2 in fns_other]
-        for fn1 in fns
+        for fn1 in fnsvals
     ])
-    assert_allclose(grid.integrate(fns, fns_other), integrals2, atol=1e-14, rtol=0)
+    assert_allclose(grid.integrate(fnsvals, fns_other), integrals2, atol=1e-14, rtol=0)
 
 
 def test_low_grid_exp():
     npoint = 101
     grid = LegendreGrid(npoint)
     assert_allclose(grid.points[npoint // 2], 0.0, atol=1e-10)
-    fn = np.exp(grid.points)
-    fna = grid.antiderivative(fn)
-    fna += 1 - fna[npoint // 2]
-    fnd = grid.derivative(fn)
-    assert_allclose(grid.integrate(fn), np.exp(1) - np.exp(-1), atol=1e-14, rtol=0)
-    assert_allclose(fna, fn, atol=1e-14, rtol=0)
-    assert_allclose(fnd, fn, atol=1e-10, rtol=0)
+    fnvals = np.exp(grid.points)
+    fnvalsa = grid.antiderivative(fnvals)
+    fnvalsa += 1 - fnvalsa[npoint // 2]
+    fnvalsd = grid.derivative(fnvals)
+    assert_allclose(grid.integrate(fnvals), np.exp(1) - np.exp(-1), atol=1e-14, rtol=0)
+    assert_allclose(fnvalsa, fnvals, atol=1e-14, rtol=0)
+    assert_allclose(fnvalsd, fnvals, atol=1e-10, rtol=0)
 
 
 def test_tf_grid_exp():
-    def tf(t, np):
-        u = (1 + t) / 2
-        return 10 * np.arctanh(u)**2
-    grid = TransformedGrid(tf, 201)
-    fn = np.exp(-grid.points)
-    fna = grid.antiderivative(fn)
-    fna += -1 - fna[0]
-    fnd = grid.derivative(fn)
-    assert_allclose(grid.integrate(fn), 1.0, atol=1e-13, rtol=0)
-    assert_allclose(fna, -fn, atol=1e-7, rtol=0)
-    assert_allclose(fnd, -fn, atol=1e-7, rtol=0)
+    # pylint: disable=redefined-outer-name
+    def transform(x, np):
+        return 10 * np.arctanh((1 + x) / 2)**2
+    grid = TransformedGrid(transform, 201)
+    fnvals = np.exp(-grid.points)
+    fnvalsa = grid.antiderivative(fnvals)
+    fnvalsa += -1 - fnvalsa[0]
+    fnvalsd = grid.derivative(fnvals)
+    assert_allclose(grid.integrate(fnvals), 1.0, atol=1e-13, rtol=0)
+    assert_allclose(fnvalsa, -fnvals, atol=1e-7, rtol=0)
+    assert_allclose(fnvalsd, -fnvals, atol=1e-7, rtol=0)
 
 
 def test_tf_grid_exp_vectorized():
-    def tf(t, np):
-        u = (1 + t) / 2
-        return 15 * np.arctanh(u)**2
-    grid = TransformedGrid(tf, 201)
+    # pylint: disable=redefined-outer-name
+    def transform(x, np):
+        return 15 * np.arctanh((1 + x) / 2)**2
+    grid = TransformedGrid(transform, 201)
     exponents = np.array([1.0, 0.5, 2.0])
-    fns = np.exp(-np.outer(exponents, grid.points))
-    fnsa = grid.antiderivative(fns)
-    fnsa += (-1 / exponents - fnsa[:, 0])[:, np.newaxis]
-    fnsd = grid.derivative(fns)
-    assert_allclose(grid.integrate(fns), 1 / exponents, atol=1e-13, rtol=0)
-    assert_allclose(fnsa, -fns / exponents[:, np.newaxis], atol=1e-7, rtol=0)
-    assert_allclose(fnsd, -fns * exponents[:, np.newaxis], atol=1e-7, rtol=0)
+    fnsvals = np.exp(-np.outer(exponents, grid.points))
+    fnsvalsa = grid.antiderivative(fnsvals)
+    fnsvalsa += (-1 / exponents - fnsvalsa[:, 0])[:, np.newaxis]
+    fnsvalsd = grid.derivative(fnsvals)
+    assert_allclose(grid.integrate(fnsvals), 1 / exponents, atol=1e-13, rtol=0)
+    assert_allclose(fnsvalsa, -fnsvals / exponents[:, np.newaxis], atol=1e-7, rtol=0)
+    assert_allclose(fnsvalsd, -fnsvals * exponents[:, np.newaxis], atol=1e-7, rtol=0)
     fns_other = np.exp(-np.outer([1.1, 1.2, 0.8], grid.points))
     integrals2 = np.array([
         [grid.integrate(fn1 * fn2) for fn2 in fns_other]
-        for fn1 in fns
+        for fn1 in fnsvals
     ])
-    assert_allclose(grid.integrate(fns, fns_other), integrals2, atol=1e-14, rtol=0)
+    assert_allclose(grid.integrate(fnsvals, fns_other), integrals2, atol=1e-14, rtol=0)
 
 
-@pytest.mark.parametrize("nl", sum([[(n, l) for l in range(n)] for n in range(5)], []))
-def test_tf_grid_hydrogen_norm(nl):
-    """Test the radial grid with the normalization of hydrogen orbitals."""
-    def tf(t, np):
-        u = (1 + t) / 2
-        left = 1e-2
-        right = 1e3
-        alpha = np.log(right / left)
-        return left * (np.exp(alpha * u) - 1)
-    grid = TransformedGrid(tf, 101)
+def get_hydrogenic_solutions(grid, atnum, angqn):
+    """Compute the hydrogenic orbitals on a radial grid.
 
-    fac = np.math.factorial
-    norms = []
-    vol = 4 * np.pi * grid.points**2
-    n, l = nl
-    # This is the same as on Wikipedia, except that the spherical
-    # harmonic is replaced by 1/(4*pi).
-    normalization = np.sqrt(
-        (2 / n)**3 * fac(n - l - 1) / (2 * n * fac(n + l) * 4 * np.pi))
-    rho = grid.points * 2 / n
-    poly = eval_genlaguerre(n - l - 1, 2 * l + 1, rho)
-    psi = normalization * np.exp(-rho / 2) * rho**l * poly
-    norms.append(grid.integrate(psi * psi * vol))
-    assert_allclose(norms, 1.0, atol=1e-14, rtol=0)
+    Parameters
+    ----------
+    grid
+        The radial integration grid.
+    atnum
+        The nuclear charge.
+    angqn
+        The angular momentum quantum number.
+
+    Returns
+    -------
+    psis
+        List of tuples: (priqn, factor, psi) where priqn is the principal quantum
+        number, factor is atnum**2/priqn**2 and psi is the radial dependence of the
+        orbital U=R*r, on the grid.
+
+    """
+    psis = []
+    for i in range(7 - angqn):
+        priqn = i + 1 + angqn
+        factor = atnum**2 / priqn**2
+
+        # Compute the orbital analytically
+        fac = np.math.factorial
+        normalization = np.sqrt(
+            (2 * atnum / priqn)**3 * fac(priqn - angqn - 1) / (2 * priqn * fac(priqn + angqn)))
+        rho = grid.points * 2 * atnum / priqn
+        poly = eval_genlaguerre(priqn - angqn - 1, 2 * angqn + 1, rho)
+        psi = normalization * np.exp(-rho / 2) * rho**angqn * poly * grid.points
+        psis.append((priqn, factor, psi))
+    return psis
+
+
+@pytest.mark.parametrize("atnum", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
+@pytest.mark.parametrize("angqn", [0, 1, 2, 3, 4, 5, 6])
+def test_hydrogenic_grid(atnum, angqn, grid_basis):
+    grid = grid_basis[0]
+    psis = get_hydrogenic_solutions(grid, atnum, angqn)
+    if angqn > 0:
+        v_angkin = angqn * (angqn + 1) / (2 * grid.points**2)
+    v_ext = -atnum / grid.points
+    for i, (priqn, factor, psi) in enumerate(psis):
+        case = "i={} priqn={}".format(i, priqn)
+
+        # Check the observables for the analytic solution on the grid.
+        norm = grid.integrate(psi**2)
+        ekin = grid.integrate(-psi * grid.derivative(grid.derivative(psi)) / 2)
+        if angqn > 0:
+            ekin += grid.integrate(psi**2 * v_angkin)
+        eext = grid.integrate(psi**2 * v_ext)
+        assert_allclose(norm, 1, atol=1e-14, rtol=0, err_msg=case)
+        assert_allclose(ekin, factor / 2, atol=4e-11, rtol=0, err_msg=case)
+        assert_allclose(eext, -factor, atol=4e-11, rtol=0, err_msg=case)
 
 
 def test_tf_grid_hydrogen_few():
-    def tf(t, np):
-        u = (1 + t) / 2
+    # pylint: disable=redefined-outer-name
+    def transform(x, np):
         left = 1e-2
         right = 1e3
         alpha = np.log(right / left)
-        return left * (np.exp(alpha * u) - 1)
-    grid = TransformedGrid(tf, 101)
+        return left * (np.exp(alpha * (1 + x) / 2) - 1)
+    grid = TransformedGrid(transform, 101)
 
     # Solutions of the radial equation (U=R/r)
     psi_1s = np.sqrt(4 * np.pi) * grid.points * np.exp(-grid.points) / np.sqrt(np.pi)
