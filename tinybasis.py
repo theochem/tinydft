@@ -20,12 +20,34 @@
 """Radial orbital basis of Gaussian primitives and their integrals for TinyDFT."""
 
 
+from functools import wraps
+
 import numpy as np
 from numpy.testing import assert_allclose
 
 
+def memoize(method):
+    """Wrap a function such that its result is computed only once.
+
+    See https://en.wikipedia.org/wiki/Memoization
+    """
+    @wraps(method)
+    def wrapper(obj):
+        attrname = '_' + method.__name__
+        result = getattr(obj, attrname, None)
+        if result is None:
+            result = method(obj)
+        setattr(obj, attrname, result)
+        return result
+    return wrapper
+
+
 class Basis:
     """Gaussian radial orbital basis set, precomputed integrals and integral evaluation.
+
+    Results of integrals that take no arguments (overlap, kin_rad, kin_ang and
+    ext) are memoized. After construction, it is supposed that the basis
+    functions are not modified.
 
     Attributes
     ----------
@@ -70,19 +92,37 @@ class Basis:
         self.fns *= self.normalizations[:, np.newaxis]
         assert_allclose(np.sqrt(grid.integrate(self.fns**2)), 1.0, atol=1e-13, rtol=0)
 
-        # Precompute some integrals
-        self.olp = self.grid.integrate(self.fns, self.fns)
-        fns_d = self.grid.derivative(self.fns)
-        # return self.grid.integrate(fns_d, fns_d) / 2
-        fns_dd = self.grid.derivative(fns_d)
-        self.kin_rad = self.grid.integrate(self.fns, -fns_dd) / 2
-        self.kin_ang = self.grid.integrate(self.fns, self.fns, self.grid.points**-2)
-        self.ext = self.grid.integrate(self.fns, self.fns, -self.grid.points**-1)
-
     @property
     def nbasis(self):
         """Return the number of basis functions."""
         return self.fns.shape[0]
+
+    @property
+    @memoize
+    def olp(self):
+        """Return the overlap matrix."""
+        return self.grid.integrate(self.fns, self.fns)
+
+    @property
+    @memoize
+    def kin_rad(self):
+        """Return the radial kinetic energy operator."""
+        fns_d = self.grid.derivative(self.fns)
+        # return self.grid.integrate(fns_d, fns_d) / 2
+        fns_dd = self.grid.derivative(fns_d)
+        return self.grid.integrate(self.fns, -fns_dd) / 2
+
+    @property
+    @memoize
+    def kin_ang(self):
+        """Return the angular kinetic energy operator for l=1."""
+        return self.grid.integrate(self.fns, self.fns, self.grid.points**-2)
+
+    @property
+    @memoize
+    def ext(self):
+        """Return the operator for the interaction with the external field, i.e. a proton."""
+        return self.grid.integrate(self.fns, self.fns, -self.grid.points**-1)
 
     def pot(self, pot):
         """Return the operator for the interaction with a potential on a grid."""
