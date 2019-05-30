@@ -48,7 +48,7 @@ class Basis:
     """Gaussian radial orbital basis set, precomputed integrals and integral evaluation.
 
     Results of integrals that take no arguments (overlap, kin_rad, kin_ang and
-    ext) are memoized. After construction, it is supposed that the basis
+    ext) are memoized. After construction, it is assumed that the basis
     functions are not modified.
 
     Attributes

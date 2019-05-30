@@ -57,9 +57,10 @@ To run an atomic DFT calculation, just execute the tinydft.py script:
 
     python3 tinydft.py
 
-This generates some screen output with energy contributions and a figure
-``rho.png`` with the radial electron density on a semi-log grid. To modify the
-settings for this calculation, you have to directly edit the source code.
+This generates some screen output with energy contributions and the figure
+``rho_z023_1s2_2s2_2p6_3s2_3p6_4s2_3d3.png.png`` with the radial electron
+density on a semi-log plot. To modify the settings for this calculation, you
+have to directly edit the source code.
 
 When you make serious modifications to Tiny DFT, you can run the unit tests to
 make sure the original features still work. For this, you first need to install
@@ -102,29 +103,26 @@ In order of increasing difficulty:
    (https://www-nds.iaea.org/radii/) to build a table of abundance-averaged
    nuclear radii.
 
-5) Add a correlation energy density the function ``excfunction`` and check if it
-   improve the results in assignment (2). The following correlation functional
-   has a good compromise between simplicity and accuracy:
+5) Add a correlation energy density to the function ``excfunction`` and check if
+   it improve the results in assignment (2). The following correlation
+   functional has a good compromise between simplicity and accuracy:
    https://aip.scitation.org/doi/10.1063/1.4958669 and
    https://aip.scitation.org/doi/full/10.1063/1.4964758
 
-6) Replace the current ``econf`` argument of the ``main`` function by a number
-   of electrons. Use the Aufbau principle to assign occupation numbers at each
-   SCF iteration instead of the currently fixed values for each orbital.
-   See https://en.wikipedia.org/wiki/Aufbau_principle Try not to use the
-   Klechkowsky (or Madelung) rules, but just use the orbital energies to
-   at each SCF iteration to find the lowest-energy orbitals.
+6) The provided implementation has a rigid algorithm to assign occupation
+   numbers using the Klechkowski rule. Replace this by an algorithm that just
+   looks for all the relevant lowest-energy orbitals at every SCF iteration.
 
 7) Implement an SCF convergence test, which checks if the new Fock operator, in
    the basis of occupied orbitals from a previous iteration, is diagonal with
    orbital energies from the previous iteration on the diagonal
 
 8) Implement the zeroth-order regular approximation to the Dirac equation
-   (ZORA) to the code. ZORA needs a pro-atomic Kohn-Sham potential as input,
-   which remains fixed during the SCF cycle. Add an outer loop where the first
-   iteration is without ZORA and subsequent iterations use the Kohn-Sham
-   potential from the previous SCF loop as pro-density for ZORA. (This requires
-   the changes from assignment 4 to be implemented.)
+   (ZORA). ZORA needs a pro-atomic Kohn-Sham potential as input, which remains
+   fixed during the SCF cycle. Add an outer loop where the first iteration is
+   without ZORA and subsequent iterations use the Kohn-Sham potential from the
+   previous SCF loop as pro-density for ZORA. (To avoid that the density
+   diverges at the nucleus, assignment 4 should be implemented first.)
 
    In ZORA, the following operator should be added to the Hamiltonian:
 
@@ -142,14 +140,14 @@ In order of increasing difficulty:
    needs to be worked out in spherical coordinates, separating it in a
    radial and an angular contribution.
 
-9) Extend the program to perform unrestricted Spin-polarized DFT calculations.
-   (Assignment 5 should done prior to this one.) In addition to the Aufbau rule,
-   you now also have to implement the Hund rule. You also need to keep track of
-   spin-up and spin-down orbitals. The original code uses the angular momentum
-   quantum number as keys in the ``eps_orbs_u`` dictionary. Instead, you can
-   now use ``(l, spin)`` keys.
+9) Extend the program to perform unrestricted Spin-polarized KS-DFT
+   calculations. (Assignment 6 should done prior to this one.) In addition to
+   the Aufbau rule, you now also have to implement the Hund rule. You also need
+   to keep track of spin-up and spin-down orbitals. The original code uses the
+   angular momentum quantum number, ``angqn`` as keys in the ``eps_orbs_u``
+   dictionary. Instead, you can now use ``(angqn, spinqn)`` keys.
 
-10) Extend the program to support Hartree-Fock exchange.
+10) Extend the program to support (fractional) Hartree-Fock exchange.
 
 11) Extend the program to support (meta) generalized gradient functionals.
 
