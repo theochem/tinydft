@@ -93,8 +93,8 @@ def test_atom(atnum, num_regression, grid_basis):
     econf = klechkowski(atnum)
     occups = interpret_econf(econf)
     grid, basis = grid_basis
-    energies, rho = scf_atom(atnum, occups, grid, basis, nscf=100)
-    nelec = grid.integrate(4 * np.pi * grid.points**2 * rho)
+    energies, rhos = scf_atom(atnum, occups, grid, basis, nscf=100)
+    nelec = grid.integrate(4 * np.pi * grid.points**2 * rhos[0])
     assert_allclose(nelec, atnum, atol=1e-8, rtol=0)
     num_regression.check(
         {'energies': energies},

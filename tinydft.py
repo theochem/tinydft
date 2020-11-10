@@ -26,7 +26,7 @@ priori.
 Atomic units are used throughout.
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import numpy as np
 from numpy.testing import assert_allclose
@@ -38,6 +38,7 @@ from tinygrid import TransformedGrid
 
 
 # np.set_printoptions(suppress=True, precision=4, linewidth=500)
+plt.rcParams['font.sans-serif'] = ["Fira Sans"]
 
 
 __all__ = [
@@ -69,16 +70,27 @@ def main(atnum: float, atcharge: float):
     print("Number of basis functions         {:8d}".format(basis.nbasis))
     print("Condition number of the overlap   {:8.1e}".format(evals_olp[-1] / evals_olp[0]))
 
-    energies, rho = scf_atom(atnum, occups, grid, basis)
+    energies, rhos = scf_atom(atnum, occups, grid, basis)
 
-    plt.clf()
-    plt.title("Z={:d} Energy={:.5f}".format(atnum, energies[0]))
-    plt.semilogy(grid.points, rho)
-    plt.xlabel("Distance from nucleus")
-    plt.ylabel("Density")
-    plt.ylim(1e-4, rho.max() * 2)
-    plt.xlim(0, 5)
-    plt.savefig("rho_z{:03d}_{}.png".format(atnum, '_'.join(econf.split())))
+    fig, ax = plt.subplots(figsize=(2.2, 2.2))
+    ax.text(1, 1, SYMBOLS[atnum], ha="right", va="top", transform=ax.transAxes, fontsize=20)
+    ax.text(
+        1, 0.80,
+        (f"Z={atnum}\n" fr"Energy={energies[0]:.2f} $\mathrm{{E_h}}$" "\n")
+        + format_econf(econf),
+        ha="right", va="top", transform=ax.transAxes)
+    ax.semilogy(grid.points, rhos[3] / 2, "k-", alpha=0.25)
+    ax.semilogy(grid.points, rhos[2], "-", color="C0", lw=3, alpha=1.0)
+    ax.semilogy(grid.points, rhos[1], "-", color="C1", alpha=1.0)
+    ax.semilogy(grid.points, rhos[0], "k:", alpha=0.7)
+    ax.set_xlabel(r"Distance [$\mathrm{a_0}$]")
+    ax.set_ylabel(r"Density [$1/\mathrm{a_0}^3$]")
+    ax.set_ylim(1e-4, 1e4)
+    ax.set_xlim(0, 6)
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    fig.tight_layout(pad=0.3)
+    fig.savefig("rho_z{:03d}_{}.png".format(atnum, '_'.join(econf.split())), dpi=300)
 
 
 # pylint: disable=too-many-statements
@@ -177,11 +189,7 @@ def scf_atom(atnum: float, occups: List[List[float]], grid: TransformedGrid,
 
         # B) Build the density and derived quantities.
         # Compute the total density.
-        rho = 0.0
-        for angqn in range(maxangqn + 1):
-            orbs_grid_u = np.dot(eps_orbs_u[angqn][1].T, basis.fnvals)
-            orbs_grid_r = orbs_grid_u / grid.points / np.sqrt(4 * np.pi)
-            rho += np.dot(occups[angqn], orbs_grid_r**2)
+        rho = build_rho(occups, eps_orbs_u, grid, basis)
         # Check the total number of electrons.
         assert_allclose(grid.integrate(rho * vol), nelec, atol=1e-10, rtol=0)
         # Solve the Poisson problem for the new density.
@@ -196,9 +204,67 @@ def scf_atom(atnum: float, occups: List[List[float]], grid: TransformedGrid,
             iscf, energy, energy_kin_rad, energy_kin_ang, energy_hartree, energy_xc,
             energy_ext))
 
+    # For plotting, construct alpha and beta density
+    occups_alpha = []
+    occups_beta = []
+    for angqn in range(maxangqn + 1):
+        occ_max = angqn * 2 + 1
+        occups_alpha.append(np.clip(occups[angqn], 0, occ_max))
+        occups_beta.append(np.clip(occups[angqn] - occups_alpha[angqn], 0, occ_max))
+    rho_alpha = build_rho(occups_alpha, eps_orbs_u, grid, basis)
+    rho_beta = build_rho(occups_beta, eps_orbs_u, grid, basis)
+
+    # For plotting, construct noble core density
+    noble_core_id = np.searchsorted(NOBLE_ATNUMS, nelec, side="left") - 1
+    if noble_core_id >= 0:
+        atnum_core = NOBLE_ATNUMS[noble_core_id]
+        occups_core = interpret_econf(klechkowski(atnum_core))
+        rho_core = build_rho(occups_core, eps_orbs_u, grid, basis)
+    else:
+        rho_core = np.zeros_like(rho)
+
+    # Assemble return values
     energies = np.array([energy, energy_kin_rad, energy_kin_ang, energy_hartree,
                          energy_xc, energy_ext])
-    return energies, rho
+    rhos = np.array([rho, rho_alpha, rho_beta, rho_core])
+    return energies, rhos
+
+
+def build_rho(
+        occups: List[List[float]],
+        eps_orbs_u: Dict[int, Tuple[np.ndarray, np.ndarray]],
+        grid: TransformedGrid,
+        basis: Basis) -> np.ndarray:
+    """Construct the radial electron density on a grid.
+
+    Parameters
+    ----------
+    occups
+        List with occupation number list for each angular momentum. First index
+        is angular momentum quantum number. Second index is main quantum number.
+    eps_orbs_u
+        The u orbitals in terms of expansion coefficients. The key is an angular
+        momentum quantum numbers. The values is a tuple of two arrays: orbital
+        energies and orbital coefficients.
+    grid
+        The grid on which the densities are evaluated.
+    basis
+        The basis set.
+
+    Returns
+    -------
+    rho
+        The electron density on the grid.
+    """
+    rho = 0.0
+    for angqn, (_evals, evecs) in eps_orbs_u.items():
+        if angqn >= len(occups):
+            break
+        orbs_grid_u = np.dot(evecs.T, basis.fnvals)
+        orbs_grid_r = orbs_grid_u / grid.points / np.sqrt(4 * np.pi)
+        ocs = occups[angqn]
+        rho += np.dot(ocs, orbs_grid_r[:len(ocs)]**2)
+    return rho
 
 
 def setup_grid(npoint: int = 256) -> TransformedGrid:
@@ -278,6 +344,15 @@ def interpret_econf(econf: str) -> List[List[float]]:
     return occups
 
 
+def format_econf(econf: str) -> str:
+    """Return an electron configuration suitable for printing."""
+    for noble_atnum in NOBLE_ATNUMS[::-1]:
+        econf_noble = klechkowski(noble_atnum)
+        if econf_noble in econf:
+            return econf.replace(econf_noble, f"[{SYMBOLS[noble_atnum]}]")
+    return econf
+
+
 def klechkowski(nelec: float) -> str:
     """Return the atomic electron configuration by following the Klechkowski rule."""
     priqn_plus_angqn = 1
@@ -296,5 +371,50 @@ def klechkowski(nelec: float) -> str:
     return " ".join(words)
 
 
+SYMBOLS = [
+    "", "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al",
+    "Si", "P", "S", "Cl", "Ar", "K", "Ca", "Sc", "Ti", "V", "Cr", "Mn", "Fe",
+    "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y",
+    "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb",
+    "Te", "I", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd",
+    "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W", "Re", "Os", "Ir",
+    "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac",
+    "Th", "Pa", "U", "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No",
+    "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Cn", "Nh", "Fl",
+    "Mc", "Lv", "Ts", "Og"
+]
+
+NOBLE_ATNUMS = [2, 10, 18, 36, 54, 86]
+
+
+def program_loop_atoms():
+    """Loop through the first 48 atoms and make a plot of the density."""
+    for atnum in range(1, 49):
+        main(atnum, 0)
+
+
+def program_energy_verus_nelec():
+    """Make a plot of the energy of Carbon as function of the number of electrons."""
+    atnum = 6
+    grid = setup_grid()
+    basis = Basis(grid)
+    energies_scan = [0.0]
+    for nelec in range(1, 7):
+        econf = klechkowski(nelec)
+        occups = interpret_econf(econf)
+        energies, _rhos = scf_atom(atnum, occups, grid, basis)
+        energies_scan.append(energies[0])
+    fig, ax = plt.subplots(figsize=(4, 2.25))
+    ax.plot(energies_scan, "o")
+    ax.set_xlabel("Number of electrons")
+    ax.set_ylabel(r"Electronic energy [$\mathrm{E_h}$]")
+    ax.set_title("Carbon (HFS functional, TinyDFT)")
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    fig.tight_layout(pad=0.3)
+    fig.savefig("energy_verus_nelec_carbon.png", dpi=300)
+
+
 if __name__ == '__main__':
-    main(23, 0)
+    program_loop_atoms()
+    # program_energy_verus_nelec()
