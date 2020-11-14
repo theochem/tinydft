@@ -73,7 +73,7 @@ class Basis:
     """
 
     def __init__(self, grid: TransformedGrid, alphamin: float = 1e-6,
-                 alphamax: float = 1e8, nbasis: int = 80):
+                 alphamax: float = 1e7, nbasis: int = 80):
         """Initialize a basis.
 
         Parameters

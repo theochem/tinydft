@@ -32,7 +32,7 @@ from test_tinygrid import get_hydrogenic_solutions
 @pytest.mark.parametrize("angqn", [0, 1, 2, 3, 4, 5, 6])
 def test_hydrogenic_op(atnum, angqn, grid_basis):
     grid, basis = grid_basis
-    # Created modified copies of the operators. Do not modificy in place to
+    # Create modified copies of the operators. Do not modify in place to
     # avoid side-effects.
     kin = basis.kin_rad.copy()
     if angqn > 0:
@@ -43,7 +43,6 @@ def test_hydrogenic_op(atnum, angqn, grid_basis):
     psis = get_hydrogenic_solutions(grid, atnum, angqn)
     for i, (priqn, factor, psi) in enumerate(psis):
         case = "i={} priqn={}".format(i, priqn)
-        # Same test for the numerical solution
         dot = abs(grid.integrate(psi, np.dot(evecs[:, i], basis.fnvals)))
         norm = np.einsum('i,ij,j', evecs[:, i], basis.olp, evecs[:, i])
         ekin = np.einsum('i,ij,j', evecs[:, i], kin, evecs[:, i])

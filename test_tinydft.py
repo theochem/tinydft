@@ -47,7 +47,7 @@ def test_poisson(atnum):
     vnum = solve_poisson(grid, rho)
     vann = (1 - aux) / grid.points - alpha * aux / 2
     assert_allclose(vnum[-1], 1.0 / grid.points[-1], atol=1e-11, rtol=0)
-    assert_allclose(vnum, vann, atol=2e-5, rtol=0)
+    assert_allclose(vnum, vann, rtol=1e-6, atol=0)
 
 
 def test_interpret_econf1():
@@ -58,9 +58,9 @@ def test_interpret_econf1():
     assert occups[0][0] == 1.0
     assert occups[0][1] == 2.0
     assert occups[1][0] == 3.0
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         interpret_econf('1s1 2s0')
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         interpret_econf('1s1 2s-2')
 
 
@@ -74,9 +74,9 @@ def test_interpret_econf2():
     assert occups[0][2] == 2.0
     assert occups[1][0] == 0.0
     assert occups[1][1] == 2.5
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         interpret_econf('1s1 2s0')
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         interpret_econf('1s1 2s-2')
 
 

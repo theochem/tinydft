@@ -122,7 +122,7 @@ def test_low_grid_exp():
 def test_tf_grid_exp():
     # pylint: disable=redefined-outer-name
     def transform(x, np):
-        return 10 * np.arctanh((1 + x) / 2)**2
+        return 15 * np.arctanh((1 + x) / 2)**2
     grid = TransformedGrid(transform, 201)
     fnvals = np.exp(-grid.points)
     fnvalsa = grid.antiderivative(fnvals)
@@ -204,12 +204,13 @@ def test_hydrogenic_grid(atnum, angqn, grid_basis):
         # Check the observables for the analytic solution on the grid.
         norm = grid.integrate(psi**2)
         ekin = grid.integrate(-psi * grid.derivative(grid.derivative(psi)) / 2)
+        # ekin = grid.integrate(grid.derivative(psi)**2 / 2)
         if angqn > 0:
             ekin += grid.integrate(psi**2 * v_angkin)
         eext = grid.integrate(psi**2 * v_ext)
         assert_allclose(norm, 1, atol=1e-14, rtol=0, err_msg=case)
-        assert_allclose(ekin, factor / 2, atol=4e-11, rtol=0, err_msg=case)
-        assert_allclose(eext, -factor, atol=4e-11, rtol=0, err_msg=case)
+        assert_allclose(ekin, factor / 2, rtol=1e-12, atol=0, err_msg=case)
+        assert_allclose(eext, -factor, rtol=1e-12, atol=0, err_msg=case)
 
 
 def test_tf_grid_hydrogen_few():
