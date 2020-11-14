@@ -22,7 +22,7 @@
 
 import pytest
 
-from tinydft import setup_grid
+from tinygrid import setup_grid
 from tinybasis import Basis
 
 

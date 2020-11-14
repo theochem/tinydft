@@ -23,8 +23,11 @@ from typing import List, Callable
 import numpy as np
 from numpy.polynomial.legendre import legvander, legder, legint, leggauss
 
+from autograd import elementwise_grad
+import autograd.numpy as agnp
 
-__all__ = ['LegendreGrid', 'TransformedGrid']
+
+__all__ = ['LegendreGrid', 'TransformedGrid', 'setup_grid']
 
 
 class BaseGrid:
@@ -94,6 +97,7 @@ class LegendreGrid(BaseGrid):
 
     def tofnvals(self, coeffs: np.ndarray) -> np.ndarray:
         """Convert Legendre coefficients to function values on a grid."""
+        # pylint: disable=unsubscriptable-object
         return np.dot(coeffs, self.basis.T[:coeffs.shape[-1]])
 
     def antiderivative(self, fnvals: np.ndarray) -> np.ndarray:
@@ -129,8 +133,6 @@ class TransformedGrid(BaseGrid):
             The number of grid points.
 
         """
-        from autograd import elementwise_grad
-        import autograd.numpy as agnp
         self.legendre_grid = LegendreGrid(npoint)
         points = transform(self.legendre_grid.points, np)
         # Compute the Jacobian of the grid transformation and update weights.
@@ -146,3 +148,15 @@ class TransformedGrid(BaseGrid):
     def derivative(self, fnvals: np.ndarray) -> np.ndarray:
         """Return the derivative."""
         return self.legendre_grid.derivative(fnvals) / self.derivs
+
+
+def setup_grid(npoint: int = 256) -> TransformedGrid:
+    """Create a suitable grid for integration and differentiation."""
+    # pylint: disable=redefined-outer-name
+    def transform(x: np.ndarray, np) -> np.ndarray:
+        """Transform from [-1, 1] to [0, big_radius]."""
+        left = 1e-3
+        right = 1e4
+        alpha = np.log(right / left)
+        return left * (np.exp(alpha * (1 + x) / 2) - 1)
+    return TransformedGrid(transform, npoint)

@@ -2,8 +2,7 @@ Tiny DFT
 ########
 
 Tiny DFT is a minimalistic atomic Density Functional Theory (DFT) code, mainly
-for educational purposes. It only supports spherical closed-shell atoms (with
-fractional occupations to obtain a spherical density) and local
+for educational purposes. It only supports spherically symmetric atoms and local
 exchange-correlation functionals (at the moment only Dirac exchange).
 
 The code is designed with the following criteria in mind:
@@ -20,7 +19,11 @@ The code is designed with the following criteria in mind:
   polynomials is used for the Poisson solver.)
 
 - The total number of lines should be minimal and the source-code should be easy
-  to understand, provided some background in DFT and spectral methods.
+  to understand, provided some background in DFT and spectral methods. As in
+  most atomic DFT codes, the occupation numbers of the orbitals are all given
+  the same value within one pair of angular and principal quantum number, to
+  obtain a spherically symmetric density. The code only keeps track of the total
+  number of electrons for each pair of quantum numbers.
 
 
 "Installation"
@@ -51,16 +54,16 @@ The code is designed with the following criteria in mind:
 Usage
 =====
 
-To run an atomic DFT calculation, just execute the tinydft.py script:
+To run a series of atomic DFT calculation, up to argon, just execute
 
 .. code-block::
 
-    python3 tinydft.py
+    python3 program_mendelejev.py
 
-This generates some screen output with energy contributions and the figure
-``rho_z023_1s2_2s2_2p6_3s2_3p6_4s2_3d3.png.png`` with the radial electron
-density on a semi-log plot. To modify the settings for this calculation, you
-have to directly edit the source code.
+This generates some screen output with SCF convergence, energy contributions and
+the figures ``rho_z0*.png`` with the radial electron densities on a semi-log
+plot. To modify the settings for these calculation, you can directly edit the
+source code.
 
 When you make serious modifications to Tiny DFT, you can run the unit tests to
 make sure the original features still work. For this, you first need to install
@@ -84,17 +87,19 @@ In order of increasing difficulty:
    reproduce the Rydberg spectral series well? (See
    https://en.wikipedia.org/wiki/Hydrogen_spectral_series#Rydberg_formula)
 
-2) Write a driver script ``driver.py``, which uses ``tinydft.py`` as a python
-   module to compute the ionization potentials and electron affinities of all
-   atoms in the periodic table.
-
-3) Add a second unit test for the Poisson solver in ``test_tinydft.py``. The
+2) Add a second unit test for the Poisson solver in ``test_tinydft.py``. The
    current unit test checks if the Poisson solver can correctly compute the
    electrostatic potential of a spherical exponential density distribution
    (Slater-type). Add a similar test for a Gaussian density distribution. Use
    the ``erf`` function from ``scipy.special`` to compute the analytic result.
    See
    https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.erf.html#scipy.special.erf
+
+3) At the moment, the DFT calculations assume spin-unpolarized densities, which
+   mainly affects the exchange-correlation energy. Change the code to work with
+   spin-polarized densities. For this, also the occupation numbers for each
+   angular momentum and principal quantum number should be split into a spin-up
+   and spin-down occupation number.
 
 4) Change the external potential to take into account the finite extent of the
    nucleus. You can use a Gaussian density distribution. Write a
@@ -167,6 +172,9 @@ of ``z``, to make them more self-explaining and to comply with good practices.
 - ``econf``: Electronic configuration
 - ``energy_hartree``: Hartree energy, i.e. classical electron-electron repulsion.
 - ``eps``: Orbital energies
+- ``eps_orbs_u``: A list of tuples of (orbital energy, orbital coefficients).
+  One tuple for each angular momentum quantum number. The orbital coefficients
+  represent the radial solutions U = R/r.
 - ``energy_xc``: Exchange-correlation energy
 - ``exc``: Exchange-correlation energy density
 - ``evals``: Eigenvalues

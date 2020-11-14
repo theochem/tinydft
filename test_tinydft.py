@@ -22,7 +22,9 @@ import numpy as np
 from numpy.testing import assert_allclose
 import pytest
 
-from tinydft import scf_atom, setup_grid, solve_poisson, char2angqn, klechkowski, interpret_econf
+from tinydft import scf_atom, build_rho, solve_poisson
+from tinygrid import setup_grid
+from program_mendelejev import char2angqn, klechkowski, interpret_econf
 
 
 def test_char2angqn():
@@ -93,9 +95,10 @@ def test_atom(atnum, num_regression, grid_basis):
     econf = klechkowski(atnum)
     occups = interpret_econf(econf)
     grid, basis = grid_basis
-    energies, rhos = scf_atom(atnum, occups, grid, basis, nscf=100)
-    nelec = grid.integrate(4 * np.pi * grid.points**2 * rhos[0])
-    assert_allclose(nelec, atnum, atol=1e-8, rtol=0)
+    energies, eps_orbs_u = scf_atom(atnum, occups, grid, basis, nscf=100)
+    rho = build_rho(occups, eps_orbs_u, grid, basis)
+    nelec = grid.integrate(4 * np.pi * grid.points**2 * rho)
+    assert_allclose(nelec, atnum, atol=1e-10, rtol=0)
     num_regression.check(
         {'energies': energies},
         default_tolerance={'rtol': 1e-9, 'atol': 0},
