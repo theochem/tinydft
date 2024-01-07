@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=65.0", "setuptools_scm[toml]>=7.1.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "TinyDFT"
+authors = [
+  { name="Toon Verstraelen", email="toon.verstraelen@ugent.be" },
+]
+description = "Minimalistic atomic DFT code."
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Education :: Computer Aided Instruction (CAI)",
+]
+dependencies = [
+    "numpy>=1.4.0",
+    "scipy>=1.0.0",
+    "matplotlib>=3.0",
+    "autograd>=1.2",
+]
+dynamic = ["version"]
+
+[project.scripts]
+tinydft-demo-evn = "tinydft.demo_evn:main"
+tinydft-demo-mendelejev = "tinydft.demo_mendelejev:main"
+
+[tool.pytest.ini_options]
+addopts = "--cov=tinydft --cov-report=term-missing"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+select = ["E", "F", "UP", "B", "I", "PGH", "PL", "RUF", "C"]
+line-length = 100
+target-version = "py311"
+ignore = ["PLR2004", "PLR0913", "PLR0912", "PLW2901", "PLR0915", "C901", "PLR0911", "RUF001"]
+
+[tool.setuptools_scm]
+write_to = "src/tinydft/_version.py"
+version_scheme = "post-release"
+local_scheme = "no-local-version"

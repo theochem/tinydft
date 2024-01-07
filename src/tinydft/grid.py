@@ -1,5 +1,5 @@
 # Tiny DFT is a minimalistic atomic DFT implementation.
-# Copyright (C) 2019 The Tiny DFT Development Team
+# Copyright (C) 2024 The Tiny DFT Development Team
 #
 # This file is part of Tiny DFT.
 #
@@ -18,16 +18,14 @@
 # --
 """Tiny numerical integration library for Tiny DFT."""
 
-from typing import List, Callable
+from collections.abc import Callable
 
-import numpy as np
-from numpy.polynomial.legendre import legvander, legder, legint, leggauss
-
-from autograd import elementwise_grad
 import autograd.numpy as agnp
+import numpy as np
+from autograd import elementwise_grad
+from numpy.polynomial.legendre import legder, leggauss, legint, legvander
 
-
-__all__ = ['LegendreGrid', 'TransformedGrid', 'setup_grid']
+__all__ = ("LegendreGrid", "TransformedGrid", "setup_grid")
 
 
 class BaseGrid:
@@ -57,12 +55,12 @@ class BaseGrid:
 
         """
         args = [self.weights, [0]]
-        sublistout: List[int] = []
+        sublistout: list[int] = []
         counter = 1
         for fnvals in multi_fnvals:
             args.append(fnvals)
             nkeep = fnvals.ndim - 1
-            sublist = list(range(counter, counter + nkeep)) + [0]
+            sublist = [*range(counter, counter + nkeep), 0]
             sublistout += sublist[:-1]
             args.append(sublist)
             counter += nkeep
@@ -87,9 +85,8 @@ class LegendreGrid(BaseGrid):
         # Basis functions are used to transform from grid data to Legendre
         # coefficients and back.
         self.basis = legvander(self.points, npoint - 1)
-        # pylint: disable=invalid-name
         U, S, Vt = np.linalg.svd(self.basis)
-        self.basis_inv = np.einsum('ji,j,kj->ik', Vt, 1 / S, U)
+        self.basis_inv = np.einsum("ji,j,kj->ik", Vt, 1 / S, U)
 
     def tocoeffs(self, fnvals: np.ndarray) -> np.ndarray:
         """Convert function values on a grid to Legendre coefficients."""
@@ -97,8 +94,7 @@ class LegendreGrid(BaseGrid):
 
     def tofnvals(self, coeffs: np.ndarray) -> np.ndarray:
         """Convert Legendre coefficients to function values on a grid."""
-        # pylint: disable=unsubscriptable-object
-        return np.dot(coeffs, self.basis.T[:coeffs.shape[-1]])
+        return np.dot(coeffs, self.basis.T[: coeffs.shape[-1]])
 
     def antiderivative(self, fnvals: np.ndarray) -> np.ndarray:
         """Return the antiderivative."""
@@ -136,7 +132,6 @@ class TransformedGrid(BaseGrid):
         self.legendre_grid = LegendreGrid(npoint)
         points = transform(self.legendre_grid.points, np)
         # Compute the Jacobian of the grid transformation and update weights.
-        # pylint: disable=no-value-for-parameter
         self.derivs = abs(elementwise_grad(transform)(self.legendre_grid.points, agnp))
         weights = self.legendre_grid.weights * self.derivs
         BaseGrid.__init__(self, points, weights)
@@ -152,11 +147,12 @@ class TransformedGrid(BaseGrid):
 
 def setup_grid(npoint: int = 256) -> TransformedGrid:
     """Create a suitable grid for integration and differentiation."""
-    # pylint: disable=redefined-outer-name
+
     def transform(x: np.ndarray, np) -> np.ndarray:
         """Transform from [-1, 1] to [0, big_radius]."""
         left = 1e-3
         right = 1e4
         alpha = np.log(right / left)
         return left * (np.exp(alpha * (1 + x) / 2) - 1)
+
     return TransformedGrid(transform, npoint)

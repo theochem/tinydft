@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 # Tiny DFT is a minimalistic atomic DFT implementation.
-# Copyright (C) 2019 The Tiny DFT Development Team
+# Copyright (C) 2024 The Tiny DFT Development Team
 #
 # This file is part of Tiny DFT.
 #
@@ -17,22 +16,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 # --
-"""Configuration of pytest."""
+"""Tiny DFT is a minimalistic atomic DFT implementation.
 
+It only supports closed-shell calculations with pure local (not even semi-local)
+functionals. One has to fix the occupations numbers of the atomic orbitals a
+priori.
 
-import pytest
+Atomic units are used throughout.
+"""
 
-from tinygrid import setup_grid
-from tinybasis import Basis
-
-
-@pytest.fixture(scope="session")
-def grid_basis():
-    """Set up default integration grid and basis set.
-
-    This fixture makes it possible to initiliase and precompute these objects
-    only once for all tests.
-    """
-    grid = setup_grid()
-    basis = Basis(grid)
-    return grid, basis
+try:
+    from ._version import __version__, __version_tuple__
+except ImportError:
+    __version__ = "0.0.0a-dev"
+    __version_tuple__ = (0, 0, 0, "a-dev")

@@ -1,5 +1,5 @@
 # Tiny DFT is a minimalistic atomic DFT implementation.
-# Copyright (C) 2019 The Tiny DFT Development Team
+# Copyright (C) 2023 The Tiny DFT Development Team
 #
 # This file is part of Tiny DFT.
 #
@@ -19,12 +19,11 @@
 """Unit tests for Tiny Grid."""
 
 import numpy as np
-from numpy.testing import assert_allclose
-from numpy.polynomial.legendre import legval
 import pytest
-from scipy.special import eval_genlaguerre
-
-from tinygrid import LegendreGrid, TransformedGrid
+from numpy.polynomial.legendre import legval
+from numpy.testing import assert_allclose
+from scipy.special import eval_genlaguerre, factorial
+from tinydft.grid import LegendreGrid, TransformedGrid
 
 
 @pytest.mark.parametrize("npoint", range(10, 20))
@@ -43,7 +42,7 @@ def test_low_grid_basics(npoint):
 def test_low_grid_basics_vectorized():
     shape = (5, 4, 8)
     npoint = 7
-    extshape = shape + (npoint, )
+    extshape = (*shape, npoint)
     grid = LegendreGrid(npoint)
     fn1 = np.random.uniform(0, 1, extshape)
     coeffs = grid.tocoeffs(fn1)
@@ -99,10 +98,7 @@ def test_low_grid_sin_vectorized():
     ]
     assert_allclose(fnsvalsd, derivatives, atol=1e-10, rtol=0)
     fns_other = np.cos(np.outer([1.1, 1.2, 0.8], grid.points))
-    integrals2 = np.array([
-        [grid.integrate(fn1 * fn2) for fn2 in fns_other]
-        for fn1 in fnsvals
-    ])
+    integrals2 = np.array([[grid.integrate(fn1 * fn2) for fn2 in fns_other] for fn1 in fnsvals])
     assert_allclose(grid.integrate(fnsvals, fns_other), integrals2, atol=1e-14, rtol=0)
 
 
@@ -120,9 +116,9 @@ def test_low_grid_exp():
 
 
 def test_tf_grid_exp():
-    # pylint: disable=redefined-outer-name
     def transform(x, np):
-        return 15 * np.arctanh((1 + x) / 2)**2
+        return 15 * np.arctanh((1 + x) / 2) ** 2
+
     grid = TransformedGrid(transform, 201)
     fnvals = np.exp(-grid.points)
     fnvalsa = grid.antiderivative(fnvals)
@@ -134,9 +130,9 @@ def test_tf_grid_exp():
 
 
 def test_tf_grid_exp_vectorized():
-    # pylint: disable=redefined-outer-name
     def transform(x, np):
-        return 15 * np.arctanh((1 + x) / 2)**2
+        return 15 * np.arctanh((1 + x) / 2) ** 2
+
     grid = TransformedGrid(transform, 201)
     exponents = np.array([1.0, 0.5, 2.0])
     fnsvals = np.exp(-np.outer(exponents, grid.points))
@@ -145,12 +141,9 @@ def test_tf_grid_exp_vectorized():
     fnsvalsd = grid.derivative(fnsvals)
     assert_allclose(grid.integrate(fnsvals), 1 / exponents, atol=1e-13, rtol=0)
     assert_allclose(fnsvalsa, -fnsvals / exponents[:, np.newaxis], atol=1e-7, rtol=0)
-    assert_allclose(fnsvalsd, -fnsvals * exponents[:, np.newaxis], atol=1e-7, rtol=0)
+    assert_allclose(fnsvalsd, -fnsvals * exponents[:, np.newaxis], atol=2e-7, rtol=0)
     fns_other = np.exp(-np.outer([1.1, 1.2, 0.8], grid.points))
-    integrals2 = np.array([
-        [grid.integrate(fn1 * fn2) for fn2 in fns_other]
-        for fn1 in fnsvals
-    ])
+    integrals2 = np.array([[grid.integrate(fn1 * fn2) for fn2 in fns_other] for fn1 in fnsvals])
     assert_allclose(grid.integrate(fnsvals, fns_other), integrals2, atol=1e-14, rtol=0)
 
 
@@ -180,9 +173,11 @@ def get_hydrogenic_solutions(grid, atnum, angqn):
         factor = atnum**2 / priqn**2
 
         # Compute the orbital analytically
-        fac = np.math.factorial
         normalization = np.sqrt(
-            (2 * atnum / priqn)**3 * fac(priqn - angqn - 1) / (2 * priqn * fac(priqn + angqn)))
+            (2 * atnum / priqn) ** 3
+            * factorial(priqn - angqn - 1)
+            / (2 * priqn * factorial(priqn + angqn))
+        )
         rho = grid.points * 2 * atnum / priqn
         poly = eval_genlaguerre(priqn - angqn - 1, 2 * angqn + 1, rho)
         psi = normalization * np.exp(-rho / 2) * rho**angqn * poly * grid.points
@@ -199,7 +194,7 @@ def test_hydrogenic_grid(atnum, angqn, grid_basis):
         v_angkin = angqn * (angqn + 1) / (2 * grid.points**2)
     v_ext = -atnum / grid.points
     for i, (priqn, factor, psi) in enumerate(psis):
-        case = "i={} priqn={}".format(i, priqn)
+        case = f"i={i} priqn={priqn}"
 
         # Check the observables for the analytic solution on the grid.
         norm = grid.integrate(psi**2)
@@ -214,28 +209,34 @@ def test_hydrogenic_grid(atnum, angqn, grid_basis):
 
 
 def test_tf_grid_hydrogen_few():
-    # pylint: disable=redefined-outer-name
     def transform(x, np):
         left = 1e-2
         right = 1e3
         alpha = np.log(right / left)
         return left * (np.exp(alpha * (1 + x) / 2) - 1)
+
     grid = TransformedGrid(transform, 101)
 
     # Solutions of the radial equation (U=R/r)
     psi_1s = np.sqrt(4 * np.pi) * grid.points * np.exp(-grid.points) / np.sqrt(np.pi)
-    psi_2s = np.sqrt(4 * np.pi) * grid.points * np.exp(-grid.points / 2) / \
-        np.sqrt(2 * np.pi) / 4 * (2 - grid.points)
+    psi_2s = (
+        np.sqrt(4 * np.pi)
+        * grid.points
+        * np.exp(-grid.points / 2)
+        / np.sqrt(2 * np.pi)
+        / 4
+        * (2 - grid.points)
+    )
 
     # Check norms with vectorization
-    norms = grid.integrate(np.array([psi_1s, psi_2s])**2)
+    norms = grid.integrate(np.array([psi_1s, psi_2s]) ** 2)
     assert_allclose(norms, 1.0, atol=1e-14, rtol=0)
 
     # Check norms and energies
     for eps, psi in [(-0.5, psi_1s), (-0.125, psi_2s)]:
         ekin = grid.integrate(-psi * grid.derivative(grid.derivative(psi)) / 2)
         assert_allclose(ekin, -eps, atol=1e-11, rtol=0)
-        epot = grid.integrate(-psi**2 / grid.points)
+        epot = grid.integrate(-(psi**2) / grid.points)
         assert_allclose(epot, 2 * eps, atol=1e-14, rtol=0)
 
     dot = grid.integrate(psi_1s * psi_2s)

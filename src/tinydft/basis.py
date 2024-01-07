@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 # Tiny DFT is a minimalistic atomic DFT implementation.
-# Copyright (C) 2019 The Tiny DFT Development Team
+# Copyright (C) 2024 The Tiny DFT Development Team
 #
 # This file is part of Tiny DFT.
 #
@@ -25,7 +24,7 @@ from functools import wraps
 import numpy as np
 from numpy.testing import assert_allclose
 
-from tinygrid import TransformedGrid
+from .grid import TransformedGrid
 
 
 def memoize(method):
@@ -33,14 +32,16 @@ def memoize(method):
 
     See https://en.wikipedia.org/wiki/Memoization
     """
+
     @wraps(method)
     def wrapper(obj) -> np.ndarray:
-        attrname = '_' + method.__name__
+        attrname = "_" + method.__name__
         result = getattr(obj, attrname, None)
         if result is None:
             result = method(obj)
         setattr(obj, attrname, result)
         return result
+
     return wrapper
 
 
@@ -72,8 +73,9 @@ class Basis:
 
     """
 
-    def __init__(self, grid: TransformedGrid, alphamin: float = 1e-6,
-                 alphamax: float = 1e7, nbasis: int = 80):
+    def __init__(
+        self, grid: TransformedGrid, alphamin: float = 1e-6, alphamax: float = 1e7, nbasis: int = 80
+    ):
         """Initialize a basis.
 
         Parameters
@@ -89,9 +91,9 @@ class Basis:
 
         """
         self.grid = grid
-        self.alphas = 10**np.linspace(np.log10(alphamin), np.log10(alphamax), nbasis)
+        self.alphas = 10 ** np.linspace(np.log10(alphamin), np.log10(alphamax), nbasis)
         self.fnvals = np.exp(-np.outer(self.alphas, grid.points**2)) * grid.points
-        self.normalizations = np.sqrt(np.sqrt(self.alphas))**3 * np.sqrt(np.sqrt(2 / np.pi) * 8)
+        self.normalizations = np.sqrt(np.sqrt(self.alphas)) ** 3 * np.sqrt(np.sqrt(2 / np.pi) * 8)
         self.fnvals *= self.normalizations[:, np.newaxis]
         assert_allclose(np.sqrt(grid.integrate(self.fnvals**2)), 1.0, atol=7e-14, rtol=0)
 
@@ -100,15 +102,15 @@ class Basis:
         """Return the number of basis functions."""
         return self.fnvals.shape[0]
 
-    @property  # type: ignore
+    @property
     @memoize
     def olp(self) -> np.ndarray:
         """Return the overlap matrix."""
         alpha_sums = np.add.outer(self.alphas, self.alphas)
         alpha_prods = np.outer(self.alphas, self.alphas)
-        return (2 * np.sqrt(2)) * (alpha_prods)**0.75 / alpha_sums**1.5
+        return (2 * np.sqrt(2)) * (alpha_prods) ** 0.75 / alpha_sums**1.5
 
-    @property  # type: ignore
+    @property
     @memoize
     def kin_rad(self) -> np.ndarray:
         """Return the radial kinetic energy operator."""
@@ -116,15 +118,15 @@ class Basis:
         alpha_prods = np.outer(self.alphas, self.alphas)
         return np.sqrt(72) * alpha_prods**1.75 / alpha_sums**2.5
 
-    @property  # type: ignore
+    @property
     @memoize
     def kin_ang(self) -> np.ndarray:
         """Return the angular kinetic energy operator for angqn=1."""
         alpha_sums = np.add.outer(self.alphas, self.alphas)
         alpha_prods = np.outer(self.alphas, self.alphas)
-        return np.sqrt(32) * (alpha_prods)**0.75 / np.sqrt(alpha_sums)
+        return np.sqrt(32) * (alpha_prods) ** 0.75 / np.sqrt(alpha_sums)
 
-    @property  # type: ignore
+    @property
     @memoize
     def ext(self) -> np.ndarray:
         """Return the operator for the interaction with the external field, i.e. a proton."""

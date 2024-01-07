@@ -1,5 +1,5 @@
 # Tiny DFT is a minimalistic atomic DFT implementation.
-# Copyright (C) 2019 The Tiny DFT Development Team
+# Copyright (C) 2023 The Tiny DFT Development Team
 #
 # This file is part of Tiny DFT.
 #
@@ -19,13 +19,12 @@
 """Unit tests for Tiny DFT."""
 
 import numpy as np
+import pytest
 from numpy.testing import assert_allclose
 from scipy.linalg import eigh
-import pytest
-
-from tinybasis import Basis
-from tinygrid import setup_grid
 from test_tinygrid import get_hydrogenic_solutions
+from tinydft.basis import Basis
+from tinydft.grid import setup_grid
 
 
 @pytest.mark.parametrize("atnum", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
@@ -42,11 +41,11 @@ def test_hydrogenic_op(atnum, angqn, grid_basis):
     evals, evecs = eigh(kin + ext, basis.olp)
     psis = get_hydrogenic_solutions(grid, atnum, angqn)
     for i, (priqn, factor, psi) in enumerate(psis):
-        case = "i={} priqn={}".format(i, priqn)
+        case = f"i={i} priqn={priqn}"
         dot = abs(grid.integrate(psi, np.dot(evecs[:, i], basis.fnvals)))
-        norm = np.einsum('i,ij,j', evecs[:, i], basis.olp, evecs[:, i])
-        ekin = np.einsum('i,ij,j', evecs[:, i], kin, evecs[:, i])
-        eext = np.einsum('i,ij,j', evecs[:, i], ext, evecs[:, i])
+        norm = np.einsum("i,ij,j", evecs[:, i], basis.olp, evecs[:, i])
+        ekin = np.einsum("i,ij,j", evecs[:, i], kin, evecs[:, i])
+        eext = np.einsum("i,ij,j", evecs[:, i], ext, evecs[:, i])
         assert_allclose(dot, 1, atol=0, rtol=1e-7, err_msg=case)
         assert_allclose(norm, 1, atol=0, rtol=1e-8, err_msg=case)
         assert_allclose(eext, -factor, atol=0, rtol=1e-5, err_msg=case)
@@ -63,9 +62,11 @@ def test_integral_regression(num_regression):
     assert basis.ext.shape == (5, 5)
     assert_allclose(np.diag(basis.olp) - 1, 0.0, atol=1e-15, rtol=0)
     num_regression.check(
-        {'olp': basis.olp.ravel(),
-         'kin_rad': basis.kin_rad.ravel(),
-         'kin_ang': basis.kin_ang.ravel(),
-         'ext': basis.ext.ravel()},
-        default_tolerance={'rtol': 1e-15, 'atol': 0},
+        {
+            "olp": basis.olp.ravel(),
+            "kin_rad": basis.kin_rad.ravel(),
+            "kin_ang": basis.kin_ang.ravel(),
+            "ext": basis.ext.ravel(),
+        },
+        default_tolerance={"rtol": 1e-15, "atol": 0},
     )

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Tiny DFT is a minimalistic atomic DFT implementation.
-# Copyright (C) 2019 The Tiny DFT Development Team
+# Copyright (C) 2024 The Tiny DFT Development Team
 #
 # This file is part of Tiny DFT.
 #
@@ -21,13 +21,13 @@
 
 import matplotlib.pyplot as plt
 
-from tinybasis import Basis
-from tinydft import scf_atom
-from tinygrid import setup_grid
-from program_mendelejev import klechkowski, interpret_econf
+from .atom import interpret_econf, klechkowski
+from .basis import Basis
+from .dft import scf_atom
+from .grid import setup_grid
 
 
-def main():
+def main(fn_out: str = "energy_verus_nelec_carbon.png"):
     """Make a plot of the energy of Carbon as function of the number of electrons."""
     # Compute the energies.
     atnum = 6
@@ -41,17 +41,14 @@ def main():
         energies_scan.append(energies[0])
 
     # Make a nice plot.
-    plt.rcParams['font.sans-serif'] = ["Fira Sans"]
     fig, ax = plt.subplots(figsize=(4, 2.25))
     ax.plot(energies_scan, "o")
     ax.set_xlabel("Number of electrons")
     ax.set_ylabel(r"Electronic energy [$\mathrm{E_h}$]")
     ax.set_title("Carbon (HFS functional, TinyDFT)")
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-    fig.tight_layout(pad=0.3)
-    fig.savefig("energy_verus_nelec_carbon.png", dpi=300)
+    fig.savefig(fn_out)
+    plt.close(fig)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

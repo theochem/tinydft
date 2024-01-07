@@ -9,3 +9,5 @@ coverage*.xml
 matplotlibrc
 prof
 .mypy_cache
+*.egg-info
+_version.py

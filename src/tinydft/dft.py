@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 # Tiny DFT is a minimalistic atomic DFT implementation.
-# Copyright (C) 2019 The Tiny DFT Development Team
+# Copyright (C) 2024 The Tiny DFT Development Team
 #
 # This file is part of Tiny DFT.
 #
@@ -17,35 +16,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 # --
-"""Tiny DFT is a minimalistic atomic DFT implementation.
+"""DFT main routines."""
 
-It only supports closed-shell calculations with pure local (not even semi-local)
-functionals. One has to fix the occupations numbers of the atomic orbitals a
-priori.
 
-Atomic units are used throughout.
-"""
-
-from typing import List, Tuple
-
+import autograd.numpy as agnp
 import numpy as np
+from autograd import elementwise_grad
 from numpy.testing import assert_allclose
 from scipy.linalg import eigh
 
-from autograd import elementwise_grad
-import autograd.numpy as agnp
+from .basis import Basis
+from .grid import TransformedGrid
 
-from tinybasis import Basis
-from tinygrid import TransformedGrid
-
-
-__all__ = ['scf_atom', 'solve_poisson', 'xcfunctional']
+__all__ = ("scf_atom", "solve_poisson", "xcfunctional")
 
 
-# pylint: disable=too-many-statements
-def scf_atom(atnum: float, occups: List[np.ndarray], grid: TransformedGrid,
-             basis: Basis, nscf: int = 25, mixing: float = 0.5) \
-        -> Tuple[np.ndarray, List[Tuple[np.ndarray, np.ndarray]]]:
+def scf_atom(
+    atnum: float,
+    occups: list[np.ndarray],
+    grid: TransformedGrid,
+    basis: Basis,
+    nscf: int = 25,
+    mixing: float = 0.5,
+) -> tuple[np.ndarray, list[tuple[np.ndarray, np.ndarray]]]:
     """Perform a self-consistent field atomic calculation.
 
     Parameters
@@ -80,24 +73,27 @@ def scf_atom(atnum: float, occups: List[np.ndarray], grid: TransformedGrid,
 
     nelec = np.concatenate(occups).sum()
     maxangqn = len(occups) - 1
-    print("Occupation numbers per ang. mom.  {:}".format(occups))
-    print("Number of electrons               {:8.1f}".format(nelec))
-    print("Maximum ang. mol. quantum number  {:8d}".format(maxangqn))
+    print(f"Occupation numbers per ang. mom.  {occups}")
+    print(f"Number of electrons               {nelec:8.1f}")
+    print(f"Maximum ang. mol. quantum number  {maxangqn:8d}")
     print()
-    print("Number of SCF iterations          {:8d}".format(nscf))
-    print("Mixing parameter                  {:8.3f}".format(mixing))
+    print(f"Number of SCF iterations          {nscf:8d}")
+    print(f"Mixing parameter                  {mixing:8.3f}")
     print()
 
-    # pylint: disable=redefined-outer-name
     def excfunction(rho, np):
         """Compute the exchange(-correlation) energy density."""
-        clda = (3 / 4) * (3.0 / np.pi)**(1 / 3)
-        return -clda * rho**(4 / 3)
+        clda = (3 / 4) * (3.0 / np.pi) ** (1 / 3)
+        return -clda * rho ** (4 / 3)
 
-    print(" It           Total         Rad Kin         Ang Kin         Hartree "
-          "             XC             Ext")
-    print("=== =============== =============== =============== =============== "
-          "=============== ===============")
+    print(
+        " It           Total         Rad Kin         Ang Kin         Hartree "
+        "             XC             Ext"
+    )
+    print(
+        "=== =============== =============== =============== =============== "
+        "=============== ==============="
+    )
 
     # SCF cycle
     # For the first iteration, the density is set to zero to obtain the core guess.
@@ -127,17 +123,16 @@ def scf_atom(atnum: float, occups: List[np.ndarray], grid: TransformedGrid,
                 fock_mix = mixing * fock + (1 - mixing) * focks_old[angqn]
                 focks_old[angqn] = fock_mix
             # Solve for the occupied orbitals.
-            evals, evecs = eigh(fock_mix, basis.olp, eigvals=(0, len(occups[angqn]) - 1))
+            evals, evecs = eigh(fock_mix, basis.olp, subset_by_index=(0, len(occups[angqn]) - 1))
             eps_orbs_u.append((evals, evecs))
             # Compute the kinetic energy contributions using the orbitals.
-            energy_kin_rad += np.einsum(
-                'i,ji,jk,ki', occups[angqn], evecs, basis.kin_rad, evecs)
-            energy_ext += atnum * np.einsum(
-                'i,ji,jk,ki', occups[angqn], evecs, basis.ext, evecs)
+            energy_kin_rad += np.einsum("i,ji,jk,ki", occups[angqn], evecs, basis.kin_rad, evecs)
+            energy_ext += atnum * np.einsum("i,ji,jk,ki", occups[angqn], evecs, basis.ext, evecs)
             if angqn > 0:
-                energy_kin_ang += np.einsum(
-                    'i,ji,jk,ki',
-                    occups[angqn], evecs, basis.kin_ang, evecs) * angmom_factor
+                energy_kin_ang += (
+                    np.einsum("i,ji,jk,ki", occups[angqn], evecs, basis.kin_ang, evecs)
+                    * angmom_factor
+                )
 
         # B) Build the density and derived quantities.
         # Compute the total density.
@@ -152,21 +147,25 @@ def scf_atom(atnum: float, occups: List[np.ndarray], grid: TransformedGrid,
         energy_xc = grid.integrate(exc * vol)
         # Compute the total energy.
         energy = energy_kin_rad + energy_kin_ang + energy_hartree + energy_xc + energy_ext
-        print("{:3d} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f}".format(
-            iscf, energy, energy_kin_rad, energy_kin_ang, energy_hartree, energy_xc,
-            energy_ext))
+        print(
+            "{:3d} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f}".format(
+                iscf, energy, energy_kin_rad, energy_kin_ang, energy_hartree, energy_xc, energy_ext
+            )
+        )
 
     # Assemble return values
-    energies = np.array([energy, energy_kin_rad, energy_kin_ang, energy_hartree,
-                         energy_xc, energy_ext])
+    energies = np.array(
+        [energy, energy_kin_rad, energy_kin_ang, energy_hartree, energy_xc, energy_ext]
+    )
     return energies, eps_orbs_u
 
 
 def build_rho(
-        occups: List[np.ndarray],
-        eps_orbs_u: List[Tuple[np.ndarray, np.ndarray]],
-        grid: TransformedGrid,
-        basis: Basis) -> np.ndarray:
+    occups: list[np.ndarray],
+    eps_orbs_u: list[tuple[np.ndarray, np.ndarray]],
+    grid: TransformedGrid,
+    basis: Basis,
+) -> np.ndarray:
     """Construct the radial electron density on a grid.
 
     Parameters
@@ -194,7 +193,7 @@ def build_rho(
         orbs_grid_u = np.dot(evecs.T, basis.fnvals)
         orbs_grid_r = orbs_grid_u / grid.points / np.sqrt(4 * np.pi)
         angqn_occups = occups[angqn]
-        rho += np.dot(angqn_occups, orbs_grid_r[:len(angqn_occups)]**2)
+        rho += np.dot(angqn_occups, orbs_grid_r[: len(angqn_occups)] ** 2)
     return rho
 
 
@@ -212,9 +211,8 @@ def solve_poisson(grid: TransformedGrid, rho: np.ndarray) -> np.ndarray:
     return pot
 
 
-def xcfunctional(rho: np.ndarray, excfunction) -> Tuple[np.ndarray, np.ndarray]:
+def xcfunctional(rho: np.ndarray, excfunction) -> tuple[np.ndarray, np.ndarray]:
     """Compute the exchange-(correlation) energy density and potential."""
     exc = excfunction(rho, np)
-    # pylint: disable=no-value-for-parameter
     vxc = elementwise_grad(excfunction)(rho, agnp)
     return exc, vxc

@@ -1,5 +1,5 @@
 # Tiny DFT is a minimalistic atomic DFT implementation.
-# Copyright (C) 2019 The Tiny DFT Development Team
+# Copyright (C) 2023 The Tiny DFT Development Team
 #
 # This file is part of Tiny DFT.
 #
@@ -19,21 +19,20 @@
 """Unit tests for Tiny DFT."""
 
 import numpy as np
-from numpy.testing import assert_allclose
 import pytest
-
-from tinydft import scf_atom, build_rho, solve_poisson
-from tinygrid import setup_grid
-from program_mendelejev import char2angqn, klechkowski, interpret_econf
+from numpy.testing import assert_allclose
+from tinydft.atom import char2angqn, interpret_econf, klechkowski
+from tinydft.dft import build_rho, scf_atom, solve_poisson
+from tinydft.grid import setup_grid
 
 
 def test_char2angqn():
-    assert char2angqn('s') == 0
-    assert char2angqn('S') == 0
-    assert char2angqn('p') == 1
-    assert char2angqn('P') == 1
-    assert char2angqn('d') == 2
-    assert char2angqn('D') == 2
+    assert char2angqn("s") == 0
+    assert char2angqn("S") == 0
+    assert char2angqn("p") == 1
+    assert char2angqn("P") == 1
+    assert char2angqn("d") == 2
+    assert char2angqn("D") == 2
 
 
 @pytest.mark.parametrize("atnum", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111])
@@ -51,7 +50,7 @@ def test_poisson(atnum):
 
 
 def test_interpret_econf1():
-    occups = interpret_econf('1s1 2s2 2p3.0')
+    occups = interpret_econf("1s1 2s2 2p3.0")
     assert len(occups) == 2
     assert len(occups[0]) == 2
     assert len(occups[1]) == 1
@@ -59,13 +58,13 @@ def test_interpret_econf1():
     assert occups[0][1] == 2.0
     assert occups[1][0] == 3.0
     with pytest.raises(ValueError):
-        interpret_econf('1s1 2s0')
+        interpret_econf("1s1 2s0")
     with pytest.raises(ValueError):
-        interpret_econf('1s1 2s-2')
+        interpret_econf("1s1 2s-2")
 
 
 def test_interpret_econf2():
-    occups = interpret_econf('1s1 3s2 3p2.5')
+    occups = interpret_econf("1s1 3s2 3p2.5")
     assert len(occups) == 2
     assert len(occups[0]) == 3
     assert len(occups[1]) == 2
@@ -75,19 +74,20 @@ def test_interpret_econf2():
     assert occups[1][0] == 0.0
     assert occups[1][1] == 2.5
     with pytest.raises(ValueError):
-        interpret_econf('1s1 2s0')
+        interpret_econf("1s1 2s0")
     with pytest.raises(ValueError):
-        interpret_econf('1s1 2s-2')
+        interpret_econf("1s1 2s-2")
 
 
 def test_klechkowski():
-    assert klechkowski(1) == '1s1'
-    assert klechkowski(1.5) == '1s1.5'
-    assert klechkowski(2) == '1s2'
-    assert klechkowski(10) == '1s2 2s2 2p6'
-    assert klechkowski(23) == '1s2 2s2 2p6 3s2 3p6 4s2 3d3'
-    assert klechkowski(118) == ('1s2 2s2 2p6 3s2 3p6 4s2 3d10 4p6 5s2 4d10 5p6 '
-                                '6s2 4f14 5d10 6p6 7s2 5f14 6d10 7p6')
+    assert klechkowski(1) == "1s1"
+    assert klechkowski(1.5) == "1s1.5"
+    assert klechkowski(2) == "1s2"
+    assert klechkowski(10) == "1s2 2s2 2p6"
+    assert klechkowski(23) == "1s2 2s2 2p6 3s2 3p6 4s2 3d3"
+    assert klechkowski(118) == (
+        "1s2 2s2 2p6 3s2 3p6 4s2 3d10 4p6 5s2 4d10 5p6 " "6s2 4f14 5d10 6p6 7s2 5f14 6d10 7p6"
+    )
 
 
 @pytest.mark.parametrize("atnum", [1, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121])
@@ -100,6 +100,6 @@ def test_atom(atnum, num_regression, grid_basis):
     nelec = grid.integrate(4 * np.pi * grid.points**2 * rho)
     assert_allclose(nelec, atnum, atol=1e-10, rtol=0)
     num_regression.check(
-        {'energies': energies},
-        default_tolerance={'rtol': 1e-9, 'atol': 0},
+        {"energies": energies},
+        default_tolerance={"rtol": 1e-9, "atol": 0},
     )
