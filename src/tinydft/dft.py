@@ -148,9 +148,7 @@ def scf_atom(
         # Compute the total energy.
         energy = energy_kin_rad + energy_kin_ang + energy_hartree + energy_xc + energy_ext
         print(
-            "{:3d} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f} {:15.6f}".format(
-                iscf, energy, energy_kin_rad, energy_kin_ang, energy_hartree, energy_xc, energy_ext
-            )
+            f"{iscf:3d} {energy:15.6f} {energy_kin_rad:15.6f} {energy_kin_ang:15.6f} {energy_hartree:15.6f} {energy_xc:15.6f} {energy_ext:15.6f}"
         )
 
     # Assemble return values
