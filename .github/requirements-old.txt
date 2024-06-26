@@ -1,0 +1,5 @@
+# Ensure changes to these dependencies are reflected in pyproject.toml
+numpy==1.22
+scipy==1.11.1
+matplotlib==3.4.3
+autograd>=1.2

@@ -18,7 +18,6 @@
 # --
 """Radial orbital basis of Gaussian primitives and their integrals for TinyDFT."""
 
-
 from functools import wraps
 
 import numpy as np

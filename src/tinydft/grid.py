@@ -85,8 +85,8 @@ class LegendreGrid(BaseGrid):
         # Basis functions are used to transform from grid data to Legendre
         # coefficients and back.
         self.basis = legvander(self.points, npoint - 1)
-        U, S, Vt = np.linalg.svd(self.basis)
-        self.basis_inv = np.einsum("ji,j,kj->ik", Vt, 1 / S, U)
+        u, s, vt = np.linalg.svd(self.basis)
+        self.basis_inv = np.einsum("ji,j,kj->ik", vt, 1 / s, u)
 
     def tocoeffs(self, fnvals: np.ndarray) -> np.ndarray:
         """Convert function values on a grid to Legendre coefficients."""

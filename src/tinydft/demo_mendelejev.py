@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Tiny DFT is a minimalistic atomic DFT implementation.
 # Copyright (C) 2024 The Tiny DFT Development Team
 #
@@ -18,7 +17,6 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 # --
 """Compute atomic DFT results for a series of elements."""
-
 
 import matplotlib.pyplot as plt
 import numpy as np

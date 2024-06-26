@@ -21,7 +21,6 @@
 This is used by the demos and the unit tests.
 """
 
-
 import numpy as np
 
 __all__ = ("char2angqn", "interpret_econf", "klechkowski")

@@ -31,7 +31,8 @@ def test_low_grid_basics(npoint):
     grid = LegendreGrid(npoint)
     assert grid.basis.shape == (npoint, npoint)
     assert grid.basis_inv.shape == (npoint, npoint)
-    fn1 = np.random.uniform(0, 1, npoint)
+    rng = np.random.default_rng(42)
+    fn1 = rng.uniform(0, 1, npoint)
     coeffs = grid.tocoeffs(fn1)
     fn2 = grid.tofnvals(coeffs)
     assert_allclose(fn1, fn2, atol=1e-14)
@@ -44,7 +45,8 @@ def test_low_grid_basics_vectorized():
     npoint = 7
     extshape = (*shape, npoint)
     grid = LegendreGrid(npoint)
-    fn1 = np.random.uniform(0, 1, extshape)
+    rng = np.random.default_rng(43)
+    fn1 = rng.uniform(0, 1, extshape)
     coeffs = grid.tocoeffs(fn1)
     assert coeffs.shape == extshape
     fn2 = grid.tofnvals(coeffs)

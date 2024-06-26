@@ -21,29 +21,52 @@ classifiers = [
     "Topic :: Education :: Computer Aided Instruction (CAI)",
 ]
 dependencies = [
-    "numpy>=1.4.0",
-    "scipy>=1.0.0",
-    "matplotlib>=3.0",
+    # Ensure changes to these dependencies are reflected in .github/requirements-old.txt
+    "numpy>=1.22,<2.0.0",
+    "scipy>=1.11.1",
+    "matplotlib>=3.4.3",
     "autograd>=1.2",
 ]
 dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-regressions",
+]
 
 [project.scripts]
 tinydft-demo-evn = "tinydft.demo_evn:main"
 tinydft-demo-mendelejev = "tinydft.demo_mendelejev:main"
 
 [tool.pytest.ini_options]
-addopts = "--cov=tinydft --cov-report=term-missing"
-
-[tool.black]
-line-length = 100
-target-version = ['py311']
+addopts = "-vv -W error --cov=src/tinydft --cov-report=term-missing -n auto"
 
 [tool.ruff]
-select = ["E", "F", "UP", "B", "I", "PGH", "PL", "RUF", "C"]
 line-length = 100
-target-version = "py311"
-ignore = ["PLR2004", "PLR0913", "PLR0912", "PLW2901", "PLR0915", "C901", "PLR0911", "RUF001"]
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "A", "B", "BLE", "C4", "E", "EXE", "F", "I", "ICN", "ISC", "N", "NPY", "PERF", "PIE",
+    "PL", "PT", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TRY", "UP", "W"
+]
+ignore = [
+    "ISC001",  # https://docs.astral.sh/ruff/rules/single-line-implicit-string-concatenation/
+    "PLR0904",  # https://docs.astral.sh/ruff/rules/too-many-public-methods/
+    "PLR0911",  # https://docs.astral.sh/ruff/rules/too-many-return-statements/
+    "PLR0912",  # https://docs.astral.sh/ruff/rules/too-many-branches/
+    "PLR0913",  # https://docs.astral.sh/ruff/rules/too-many-arguments/
+    "PLR0914",  # https://docs.astral.sh/ruff/rules/too-many-locals/
+    "PLR0915",  # https://docs.astral.sh/ruff/rules/too-many-statements/
+    "PLR0916",  # https://docs.astral.sh/ruff/rules/too-many-boolean-expressions/
+    "PLR0917",  # https://docs.astral.sh/ruff/rules/too-many-positional/
+    "PLR2004",  # https://docs.astral.sh/ruff/rules/magic-value-comparison/
+    "PT011",  # https://docs.astral.sh/ruff/rules/pytest-raises-too-broad/
+    "TRY003",  # https://docs.astral.sh/ruff/rules/raise-vanilla-args/
+]
 
 [tool.setuptools_scm]
 write_to = "src/tinydft/_version.py"

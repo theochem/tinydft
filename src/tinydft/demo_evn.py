@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Tiny DFT is a minimalistic atomic DFT implementation.
 # Copyright (C) 2024 The Tiny DFT Development Team
 #

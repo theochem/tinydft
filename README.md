@@ -30,28 +30,28 @@ The code is designed with the following criteria in mind:
 ## Installation
 
 1. Download the Tiny DFT repository. This can be done with your browser, after which you unpack
-   the archive: https://github.com/theochem/tinydft/archive/master.zip.
+   the archive: https://github.com/theochem/tinydft/archive/main.zip.
    Or you can use git:
 
-   ``bash
+   ```bash
    git clone https://github.com/theochem/tinydft.git
    cd tinydft
-   ``
+   ```
 
 1. Install the `tinydft` package from source in development mode (for easy hacking):
 
-   ``bash
+   ```bash
    pip install -e .
-   ``
+   ```
 
 
 ## Usage
 
 To run a series of atomic DFT calculation, up to argon, run the mendelejev demo
 
-``bash
+```bash
 tinydft-demo-mendelejev
-``
+```
 
 This generates some screen output with SCF convergence, energy contributions and
 the figures `rho_z0*.png` with the radial electron densities on a semi-log plot.
@@ -62,10 +62,10 @@ make sure the original features still work.
 
 For this, you first need to install [pytest](https://pytest.org/):
 
-``bash
+```bash
 python3 -m pip install pytest pytest-cov pytest-regressions pandas --upgrade
 pytest
-``
+```
 
 
 ## Programming assignments
