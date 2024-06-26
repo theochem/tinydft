@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
     # Ensure changes to these dependencies are reflected in .github/requirements-old.txt
-    "numpy>=1.22,<2.0.0",
+    "numpy>=1.23.5,<2.0.0",
     "scipy>=1.11.1",
     "matplotlib>=3.4.3",
     "autograd>=1.2",
