@@ -14,7 +14,7 @@ jobs:
   tests:
     strategy:
       matrix:
-        python-version: ["3.9", "3.12"]
+        python-version: ["3.11", "3.12"]
     runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install oldest versions of supported dependencies
-        if: ${{ matrix.python-version == '3.9'}}
+        if: ${{ matrix.python-version == '3.11'}}
         run: pip install -r .github/requirements-old.txt
       - name: Install development version
         run: pip install -e .[dev]
