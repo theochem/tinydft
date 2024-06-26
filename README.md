@@ -60,12 +60,20 @@ To modify the settings for these calculation, you can directly edit the source c
 When you make serious modifications to Tiny DFT, you can run the unit tests to
 make sure the original features still work.
 
-For this, you first need to install [pytest](https://pytest.org/):
+For this, you first need to install [pytest](https://pytest.org/) in a development setup.
+For example:
 
 ```bash
-python3 -m pip install pytest pytest-cov pytest-regressions pandas --upgrade
+git clone git@github.com:theochem/tinydft.git
+cd tinydft
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install -e .[dev]
+pre-commit install
 pytest
 ```
+
+See [the QC-Devs Contributor Guide](https://github.com/theochem/.github/blob/main/CONTRIBUTING.md) for more details.
 
 
 ## Programming assignments
