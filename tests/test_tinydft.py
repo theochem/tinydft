@@ -21,6 +21,7 @@
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose
+
 from tinydft.atom import char2angqn, interpret_econf, klechkowski
 from tinydft.dft import build_rho, scf_atom, solve_poisson
 from tinydft.grid import setup_grid
