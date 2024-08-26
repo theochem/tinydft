@@ -12,3 +12,4 @@ prof
 *.egg-info
 _version.py
 .ruff_cache
+build
