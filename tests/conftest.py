@@ -19,6 +19,7 @@
 """Configuration of pytest."""
 
 import pytest
+
 from tinydft.basis import Basis
 from tinydft.grid import setup_grid
 

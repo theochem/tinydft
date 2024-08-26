@@ -23,6 +23,7 @@ import pytest
 from numpy.polynomial.legendre import legval
 from numpy.testing import assert_allclose
 from scipy.special import eval_genlaguerre, factorial
+
 from tinydft.grid import LegendreGrid, TransformedGrid
 
 

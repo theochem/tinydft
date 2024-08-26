@@ -23,6 +23,7 @@ import pytest
 from numpy.testing import assert_allclose
 from scipy.linalg import eigh
 from test_tinygrid import get_hydrogenic_solutions
+
 from tinydft.basis import Basis
 from tinydft.grid import setup_grid
 
