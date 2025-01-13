@@ -87,7 +87,7 @@ def test_klechkowski():
     assert klechkowski(10) == "1s2 2s2 2p6"
     assert klechkowski(23) == "1s2 2s2 2p6 3s2 3p6 4s2 3d3"
     assert klechkowski(118) == (
-        "1s2 2s2 2p6 3s2 3p6 4s2 3d10 4p6 5s2 4d10 5p6 " "6s2 4f14 5d10 6p6 7s2 5f14 6d10 7p6"
+        "1s2 2s2 2p6 3s2 3p6 4s2 3d10 4p6 5s2 4d10 5p6 6s2 4f14 5d10 6p6 7s2 5f14 6d10 7p6"
     )
 
 
