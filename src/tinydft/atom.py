@@ -60,13 +60,13 @@ def interpret_econf(econf: str) -> list[np.ndarray]:
         occup = float(key[2:])
         if occup <= 0:
             raise ValueError(
-                "Occuptions in the electronic configuration must " "be strictly positive."
+                "Occuptions in the electronic configuration must be strictly positive."
             )
         priqn = int(key[0])
         angqn = char2angqn(key[1])
         if occup > 2 * (2 * angqn + 1):
             raise ValueError(
-                "Occuptions in the electronic configuration must " "not exceed 2 * (2 * angqn + 1)."
+                "Occuptions in the electronic configuration must not exceed 2 * (2 * angqn + 1)."
             )
         # Add more angular momenta if needed.
         while len(occups) < angqn + 1:
