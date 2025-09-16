@@ -22,10 +22,10 @@ classifiers = [
 ]
 dependencies = [
     # Ensure changes to these dependencies are reflected in .github/requirements-old.txt
-    "numpy>=1.23.5,<2.0.0",
-    "scipy>=1.11.1",
+    "numpy>=2.3.1",
+    "scipy>=1.16.0",
     "matplotlib>=3.6.3",
-    "autograd>=1.2",
+    "autograd>=1.8.0",
 ]
 dynamic = ["version"]
 

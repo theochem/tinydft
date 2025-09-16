@@ -13,3 +13,4 @@ prof
 _version.py
 .ruff_cache
 build
+.envrc

@@ -26,11 +26,10 @@ The code is designed with the following criteria in mind:
   obtain a spherically symmetric density.
   The code only keeps track of the total number of electrons for each pair of quantum numbers.
 
-
 ## Installation
 
 1. Download the Tiny DFT repository. This can be done with your browser, after which you unpack
-   the archive: https://github.com/theochem/tinydft/archive/main.zip.
+   the archive: <https://github.com/theochem/tinydft/archive/main.zip>.
    Or you can use git:
 
    ```bash
@@ -43,7 +42,6 @@ The code is designed with the following criteria in mind:
    ```bash
    pip install -e .
    ```
-
 
 ## Usage
 
@@ -75,7 +73,6 @@ pytest
 
 See [the QC-Devs Contributor Guide](https://github.com/theochem/.github/blob/main/CONTRIBUTING.md) for more details.
 
-
 ## Programming assignments
 
 In order of increasing difficulty:
@@ -84,7 +81,7 @@ In order of increasing difficulty:
    the occupied orbitals, the potentials (external, Kohn-Sham) with horizontal lines for the
    (higher but still negative) energy levels.
    Does this code reproduce the Rydberg spectral series well? (See
-   https://en.wikipedia.org/wiki/Hydrogen_spectral_series#Rydberg_formula)
+   <https://en.wikipedia.org/wiki/Hydrogen_spectral_series#Rydberg_formula>)
 
 1. Add a second unit test for the Poisson solver in `tests/test_tinydft.py`.
    The current unit test checks if the Poisson solver can correctly compute the
@@ -110,8 +107,8 @@ In order of increasing difficulty:
    it improve the results in assignment (2).
    The following correlation functional has a good compromise between simplicity and accuracy:
 
-   - https://aip.scitation.org/doi/10.1063/1.4958669 and
-   - https://aip.scitation.org/doi/full/10.1063/1.4964758
+   - <https://aip.scitation.org/doi/10.1063/1.4958669> and
+   - <https://aip.scitation.org/doi/full/10.1063/1.4964758>
 
 1. The provided implementation has a rigid algorithm to assign occupation numbers using the Klechkowski rule.
    Replace this by an algorithm that just looks for all the relevant lowest-energy orbitals at every SCF iteration.
@@ -133,8 +130,8 @@ In order of increasing difficulty:
    where the first factors are the gradients of the basis functions (similar to the kinetic energy operator).
    The Kohn-Sham potential from the previous outer iteration can be used.
    The parameter alpha is the dimensionless inverse fine-structure constant, see
-   https://physics.nist.gov/cgi-bin/cuu/Value?alphinv and
-   https://docs.scipy.org/doc/scipy/reference/constants.html
+   <https://physics.nist.gov/cgi-bin/cuu/Value?alphinv> and
+   <https://docs.scipy.org/doc/scipy/reference/constants.html>
    (`inverse fine-structure constant`).
    Before ZORA can be implemented, the formula needs to be worked out in spherical coordinates,
    separating it in a radial and an angular contribution.
@@ -150,7 +147,6 @@ In order of increasing difficulty:
 1. Extend the program to support (fractional) Hartree-Fock exchange.
 
 1. Extend the program to support (meta) generalized gradient functionals.
-
 
 ## Dictionary of variable names
 
