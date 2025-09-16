@@ -9,11 +9,11 @@ authors = [
 ]
 description = "Minimalistic atomic DFT code."
 readme = "README.md"
+license = "GPL-3.0-or-later"
 requires-python = ">=3.11"
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: Education",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: POSIX",
     "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
