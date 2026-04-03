@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: © 2023 Tiny DFT Development Team <https://github.com/molmod/acid/blob/main/AUTHORS.md>
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Tiny DFT
 
 Tiny DFT is a minimalistic atomic Density Functional Theory (DFT) code, mainly for educational purposes.
@@ -125,7 +130,7 @@ In order of increasing difficulty:
 
    In ZORA, the following operator should be added to the Hamiltonian:
 
-   ![t_{ab} = \int (\nabla \chi_a) (\nabla \chi_b) \frac{v_{KS}(\mathbf{r})}{4/\alpha^2 - 2v_{KS}(\mathbf{r})} \mathrm{d}\mathbf{r}](zora.png)
+   ![t_{ab} = nt (abla hi_a) (abla hi_b) rac{v_{KS}(athbf{r})}{4/lpha^2 - 2v_{KS}(athbf{r})} athrm{d}athbf{r}](zora.png)
 
    where the first factors are the gradients of the basis functions (similar to the kinetic energy operator).
    The Kohn-Sham potential from the previous outer iteration can be used.
@@ -183,7 +188,7 @@ of `z`, to make them more self-explaining and to comply with good practices.
 - `occups`: Occupation numbers
 - `olp`: Overlap integrals
 - `orb_u`: Orbital divided by r: U = R/r
-- `orb_r`: Orbital: R = U*r
+- `orb_r`: Orbital: R = U\*r
 - `priqn`: Primary quantum numbers
 - `rho`: Electron density on grid points
 - `vhartree`: Hartree potential, i.e. minus classical electrostatic potential

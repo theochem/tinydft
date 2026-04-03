@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2023 Tiny DFT Development Team <https://github.com/molmod/acid/blob/main/AUTHORS.md>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # Ensure changes to these dependencies are reflected in pyproject.toml
 numpy==2.2.6
 scipy==1.15.3
