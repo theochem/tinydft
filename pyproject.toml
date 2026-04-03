@@ -10,7 +10,7 @@ authors = [
 description = "Minimalistic atomic DFT code."
 readme = "README.md"
 license = "GPL-3.0-or-later"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: Education",
@@ -47,7 +47,7 @@ addopts = "-vv -W error --cov=src/tinydft --cov-report=term-missing -n auto"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = [
