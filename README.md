@@ -16,7 +16,7 @@ The code is designed with the following criteria in mind:
   [matplotlib](https://matplotlib.org/) and
   (the lesser known) [autograd](https://github.com/HIPS/autograd/).
   The latter is a library for algorithmic differentiation,
-  used to computed the analytic exchange(-correlation) potential and the grid transformation.
+  used to compute the analytic exchange(-correlation) potential and the grid transformation.
 
 - The numerical integration and differentiation algorithms should be precise
   enough to at least 6 significant digits for the total energy, but in many
@@ -33,6 +33,11 @@ The code is designed with the following criteria in mind:
 
 ## Installation
 
+It is recommended to install Tiny DFT in a Python virtual environment, to avoid conflicts with other packages.
+The details of setting up such an environment depend on your operating system and Python installation.
+
+### Hackable setup
+
 1. Download the Tiny DFT repository. This can be done with your browser, after which you unpack
    the archive: <https://github.com/theochem/tinydft/archive/main.zip>.
    Or you can use git:
@@ -42,15 +47,23 @@ The code is designed with the following criteria in mind:
    cd tinydft
    ```
 
-1. Install the `tinydft` package from source in development mode (for easy hacking):
+1. Install the `tinydft` package from source in development mode:
 
    ```bash
    pip install -e .
    ```
 
+### User setup
+
+If you only intended to use the package, e.g. for making figures, you can install it from PyPI:
+
+```bash
+pip install tinydft
+```
+
 ## Usage
 
-To run a series of atomic DFT calculation, up to argon, run the mendelejev demo
+To run a series of atomic DFT calculation, up to argon, run the Mendelejev demo
 
 ```bash
 tinydft-demo-mendelejev
@@ -58,7 +71,7 @@ tinydft-demo-mendelejev
 
 This generates some screen output with SCF convergence, energy contributions and
 the figures `rho_z0*.png` with the radial electron densities on a semi-log plot.
-To modify the settings for these calculation, you can directly edit the source code.
+To modify the settings for these calculations, you can directly edit the source code.
 
 When you make serious modifications to Tiny DFT, you can run the unit tests to
 make sure the original features still work.
@@ -109,7 +122,7 @@ In order of increasing difficulty:
    abundance-averaged nuclear radii.
 
 1. Add a correlation energy density to the function `excfunction` and check if
-   it improve the results in assignment (2).
+   it improves the results in assignment (2).
    The following correlation functional has a good compromise between simplicity and accuracy:
 
    - <https://aip.scitation.org/doi/10.1063/1.4958669> and
@@ -142,7 +155,7 @@ In order of increasing difficulty:
    separating it in a radial and an angular contribution.
 
 1. Extend the program to perform unrestricted Spin-polarized KS-DFT calculations.
-   (Assignment 6 should done prior to this one.)
+   (Assignment 6 should be done prior to this one.)
    In addition to the Aufbau rule, you now also have to implement the Hund rule.
    You also need to keep track of spin-up and spin-down orbitals.
    The original code uses the angular momentum quantum number, `angqn` as keys in the `eps_orbs_u`
