@@ -1,0 +1,147 @@
+# SPDX-FileCopyrightText: © 2023 Tiny DFT Development Team <https://github.com/molmod/acid/blob/main/AUTHORS.md>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# This workflow is adapted from:
+# https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+
+name: release
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+env:
+  # This is not critical
+  # It is used only for showing URLs in GitHub Actions web interface.
+  PYPI_NAME: TinyDFT
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Install pypa/build
+      run: >-
+        python -m pip install build
+    - name: Build package
+      run: >-
+        python -m build
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Run release notes script
+      run: >-
+        .github/scripts/extract-notes.sh
+        '${{ github.repository }}'
+        '${{ github.ref }}'
+    - name: Store the release notes
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-notes
+        path: notes.md
+
+  publish-to-pypi:
+    name: Publish Python distribution to PyPI
+    if: startsWith(github.ref, 'refs/tags/v')  # only publish to PyPI on tag pushes
+    needs:
+    - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/${{ env.PYPI_NAME }}
+    permissions:
+      id-token: write
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish distribution to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: >-
+      Sign the Python distribution with Sigstore
+      and upload them to GitHub Release
+    needs:
+    - publish-to-pypi
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Download the release notes
+      uses: actions/download-artifact@v4
+      with:
+        name: release-notes
+    - name: Sign the dists with Sigstore
+      uses: sigstore/gh-action-sigstore-python@v3.0.0
+      with:
+        inputs: >-
+          ./dist/*.tar.gz
+          ./dist/*.whl
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: >-
+        gh release create '${{ github.ref_name }}'
+        --repo '${{ github.repository }}'
+        --title '${{ env.PYPI_NAME }} ${{ github.ref_name }}'
+        --notes-file notes.md
+    - name: Upload artifact signatures to GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      # Upload to GitHub Release using the `gh` CLI.
+      # `dist/` contains the built packages, and the
+      # sigstore-produced signatures and certificates.
+      run: >-
+        gh release upload
+        '${{ github.ref_name }}'
+        dist/**
+        --repo '${{ github.repository }}'
+
+  publish-to-testpypi:
+    name: Publish Python distribution to TestPyPI
+    if: ${{ github.ref == 'refs/heads/main' &&  github.repository_owner == 'molmod'}}
+    needs:
+    - build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/${{ env.PYPI_NAME }}
+
+    permissions:
+      id-token: write
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish distribution to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/

@@ -18,3 +18,4 @@ _version.py
 build
 .envrc
 dist
+tmp
