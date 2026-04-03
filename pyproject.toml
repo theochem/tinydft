@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2023 Tiny DFT Development Team <https://github.com/molmod/acid/blob/main/AUTHORS.md>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 [build-system]
 requires = ["setuptools>=65.0", "setuptools_scm[toml]>=7.1.0"]
 build-backend = "setuptools.build_meta"
@@ -41,7 +44,8 @@ dev = [
     "pytest-cov",
     "pytest-xdist",
     "pytest-regressions",
-    "pandas"
+    "pandas",
+    "reuse",
 ]
 
 [project.scripts]

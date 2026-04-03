@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: © 2023 Tiny DFT Development Team <https://github.com/molmod/acid/blob/main/AUTHORS.md>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+version = 1
+
+[[annotations]]
+path = [
+    "zora.png",
+    "tests/test_tiny*/test_*.csv",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "© 2023 Tiny DFT Development Team <https://github.com/molmod/acid/blob/main/AUTHORS.md>"
+SPDX-License-Identifier = "GPL-3.0-or-later"
