@@ -10,20 +10,26 @@ authors = [
 description = "Minimalistic atomic DFT code."
 readme = "README.md"
 license = "GPL-3.0-or-later"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: Education",
     "Operating System :: POSIX",
     "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
     "Topic :: Education :: Computer Aided Instruction (CAI)",
 ]
 dependencies = [
     # Ensure changes to these dependencies are reflected in .github/requirements-old.txt
-    "numpy>=2.3.1",
-    "scipy>=1.16.0",
+    "numpy>=2.2.6",
+    "scipy>=1.15.3",
     "matplotlib>=3.6.3",
     "autograd>=1.8.0",
 ]
@@ -47,7 +53,7 @@ addopts = "-vv -W error --cov=src/tinydft --cov-report=term-missing -n auto"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = [
