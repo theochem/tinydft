@@ -21,16 +21,16 @@ repos:
       args: ["--autofix", "--no-sort-keys"]
     - id: trailing-whitespace
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: v1.5.5
+  rev: v1.5.6
   hooks:
     - id: remove-crlf
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.13.0
+  rev: v0.15.8
   hooks:
     - id: ruff-format
     - id: ruff
       args: ["--fix", "--show-fixes"]
 - repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.33.3
+  rev: 0.37.1
   hooks:
     - id: check-github-workflows
