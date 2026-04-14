@@ -50,7 +50,7 @@ The details of setting up such an environment depend on your operating system an
 1. Install the `tinydft` package from source in development mode:
 
    ```bash
-   pip install -e .
+   pip install -e .[dev]
    ```
 
 ### User setup
