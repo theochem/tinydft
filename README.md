@@ -50,7 +50,7 @@ The details of setting up such an environment depend on your operating system an
 1. Install the `tinydft` package from source in development mode:
 
    ```bash
-   pip install -e .
+   pip install -e .[dev]
    ```
 
 ### User setup
@@ -90,6 +90,11 @@ pytest
 ```
 
 See [the QC-Devs Contributor Guide](https://github.com/theochem/.github/blob/main/CONTRIBUTING.md) for more details.
+
+A known issue is that some unit tests may fail on specific hardware,
+with numerical errors slightly exceeding the specified tolerances.
+When this happens, you can open an issue with the details of the failing test
+and the output of the `cpuinfo` and `python -c "import numpy; numpy.show_config()"` commands.
 
 ## Programming assignments
 
