@@ -31,11 +31,14 @@ jobs:
         run: pip install -r .github/requirements-old.txt
       - name: Install development version
         run: pip install -e .[dev]
-      - name: Show NumPy and SciPy configurations
+      - name: Show CPU info
+        run:
+          cpuinfo
+      - name: Show NumPy configurations
         run: |
-          echo "================ NumPy configuration ================"
           python -c "import numpy; numpy.show_config()"
-          echo "================ SciPy configuration ================"
+      - name: Show SciPy configurations
+        run: |
           python -c "import scipy; scipy.show_config()"
       - name: Run pytest
         run: pytest -vv
