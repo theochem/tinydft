@@ -88,11 +88,11 @@ def plot_atom(atnum: float, econf: str, fn_out: str):
         1,
         0.85,
         (
-            f"Z={atnum}"
+            f"$Z = {atnum}$"
             "\n"
-            rf"$E_{{\mathrm{{KS}}}}$ = {energies[0]:.2f} $\mathrm{{E_h}}$"
+            rf"$E_{{\mathrm{{KS}}}} = {energies[0]:.2f}\,\mathrm{{E_h}}$"
             "\n"
-            rf"-$\epsilon_N$ = {-eps_homo:.2f} $\mathrm{{E_h}}$"
+            rf"$-\epsilon_N = {-eps_homo:.2f}\,\mathrm{{E_h}}$"
         ),
         ha="right",
         va="top",
